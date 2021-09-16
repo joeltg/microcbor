@@ -59,7 +59,7 @@ console.log(decode(data))
 
 ```typescript
 interface EncodeOptions {
-	strict?: true
+	strictJSON?: true
 	chunkSize?: number
 }
 
@@ -77,7 +77,7 @@ declare function encode(value: any, options: EncodeOptions = {}): Uint8Array
 
 ```typescript
 interface DecodeOptions {
-	strict?: boolean
+	strictJSON?: so boolean
 }
 
 declare function decode<T = any>(
