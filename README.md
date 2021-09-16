@@ -114,7 +114,7 @@ decode(new Uint8Array([249, 124, 0])) // Infinity
 decode(new Uint8Array([249, 252, 0])) // -Infinity
 ```
 
-If you don't want this behavior - for example, if it's important to validate that all of the values you decode are JSON-serializable - you can set `options.strict` to `true`, and microcbor will throw an error if it encounters `NaN` or `+/- Infinity`.
+If you don't want this behavior - for example, if it's important to validate that all of the values you decode are JSON-serializable - you can set `options.strictJSON` to `true`, and microcbor will throw an error if it encounters `NaN` or `+/- Infinity`.
 
 ```javascript
 import { encode } from "microcbor"
