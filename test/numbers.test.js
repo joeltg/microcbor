@@ -16,18 +16,21 @@ const numbers = [
 	256,
 	-128,
 	1.3921089,
-	838219738219,
-	832901839120328190,
+
+	838219738219, // uint64 < Number.MAX_SAFE_INTEGER
+	832901839120328190, // uint64 > Number.MAX_SAFE_INTEGER
+
 	Number.MAX_SAFE_INTEGER,
 	Number.MIN_SAFE_INTEGER,
-	Number.MIN_VALUE,
-	Number.MAX_VALUE,
-	Number.MAX_SAFE_INTEGER + 1,
 
+	Number.MAX_SAFE_INTEGER + 1,
 	// there's a bug in node-cbor affecting this number
 	// https://github.com/hildjj/node-cbor/issues/155
 	// Number.MIN_SAFE_INTEGER - 1,
 	Number.MIN_SAFE_INTEGER - 3,
+
+	Number.MIN_VALUE,
+	Number.MAX_VALUE,
 ]
 
 test("numbers", (t) => {

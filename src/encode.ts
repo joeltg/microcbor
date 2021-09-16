@@ -1,7 +1,7 @@
 import { getFloat16Precision, getFloat32Precision, setFloat16 } from "fp16"
 
 export interface EncodeOptions {
-	strict?: true
+	strictJSON?: boolean
 	chunkSize?: number
 }
 
@@ -80,7 +80,7 @@ function* encodeNumber(
 	) {
 		yield* encodeInteger(state, value)
 	} else {
-		if (state.options.strict === true) {
+		if (state.options.strictJSON === true) {
 			if (isNaN(value)) {
 				throw new Error("cannot encode NaN when strict mode is enabled")
 			} else if (value === Infinity || value === -Infinity) {

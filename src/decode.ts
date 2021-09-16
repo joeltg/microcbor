@@ -1,15 +1,16 @@
 import { getFloat16 } from "fp16"
 
 export interface DecodeOptions {
-	strict?: boolean
+	strictJSON?: boolean
 }
 
 type DecodeState = { offset: number; view: DataView; options: DecodeOptions }
 
 const maxSafeInteger = BigInt(Number.MAX_SAFE_INTEGER)
+const minSafeInteger = BigInt(Number.MIN_SAFE_INTEGER)
 
 function validateFloat(state: DecodeState, value: number) {
-	if (state.options.strict) {
+	if (state.options.strictJSON) {
 		if (isNaN(value)) {
 			throw new Error("cannot decode NaN when strict mode is enabled")
 		} else if (value === Infinity || value === -Infinity) {
@@ -52,14 +53,10 @@ const constants = {
 		state.offset += 4
 		return value
 	},
-	uint64(state: DecodeState): number {
+	uint64(state: DecodeState): bigint {
 		const value = state.view.getBigUint64(state.offset)
-		state.offset += 1
-		if (maxSafeInteger < value) {
-			return Infinity
-		} else {
-			return Number(value)
-		}
+		state.offset += 8
+		return value
 	},
 }
 
@@ -76,17 +73,19 @@ function decodeString(state: DecodeState, length: number): string {
 function getArgument(
 	state: DecodeState,
 	additionalInformation: number
-): number {
+): { value: number; uint64?: bigint } {
 	if (additionalInformation < 24) {
-		return additionalInformation
+		return { value: additionalInformation }
 	} else if (additionalInformation === 24) {
-		return constants.uint8(state)
+		return { value: constants.uint8(state) }
 	} else if (additionalInformation === 25) {
-		return constants.uint16(state)
+		return { value: constants.uint16(state) }
 	} else if (additionalInformation === 26) {
-		return constants.uint32(state)
+		return { value: constants.uint32(state) }
 	} else if (additionalInformation === 27) {
-		return constants.uint64(state)
+		const uint64 = constants.uint64(state)
+		const value = maxSafeInteger < uint64 ? Infinity : Number(uint64)
+		return { value, uint64 }
 	} else if (additionalInformation === 31) {
 		throw new Error(
 			"microcbor does not support decoding indefinite-length items"
@@ -96,38 +95,51 @@ function getArgument(
 	}
 }
 
+export class UnsafeIntegerError extends RangeError {
+	constructor(message: string, readonly value: bigint) {
+		super(message)
+	}
+}
+
 function decodeValue(state: DecodeState): any {
 	const initialByte = constants.uint8(state)
 	const majorType = initialByte >> 5
 	const additionalInformation = initialByte & 0x1f
+
 	if (majorType === 0) {
-		const value = getArgument(state, additionalInformation)
-		if (value === Infinity) {
-			throw new RangeError("cannot decode integers greater than 2^53-1")
+		const { value, uint64 } = getArgument(state, additionalInformation)
+		if (uint64 !== undefined && maxSafeInteger < uint64) {
+			throw new UnsafeIntegerError(
+				"cannot decode integers greater than 2^53-1",
+				uint64
+			)
 		} else {
 			return value
 		}
 	} else if (majorType === 1) {
-		const value = getArgument(state, additionalInformation)
-		if (value === Infinity) {
-			throw new RangeError("cannot decode integers greater than -2^53+1")
+		const { value, uint64 } = getArgument(state, additionalInformation)
+		if (uint64 !== undefined && -1n - uint64 < minSafeInteger) {
+			throw new UnsafeIntegerError(
+				"cannot decode integers less than -2^53+1",
+				-1n - uint64
+			)
 		} else {
 			return -1 - value
 		}
 	} else if (majorType === 2) {
 		throw new Error("microcbor does not support byte strings")
 	} else if (majorType === 3) {
-		const length = getArgument(state, additionalInformation)
+		const { value: length } = getArgument(state, additionalInformation)
 		return decodeString(state, length)
 	} else if (majorType === 4) {
-		const length = getArgument(state, additionalInformation)
+		const { value: length } = getArgument(state, additionalInformation)
 		const value = new Array(length)
 		for (let i = 0; i < length; i++) {
 			value[i] = decodeValue(state)
 		}
 		return value
 	} else if (majorType === 5) {
-		const length = getArgument(state, additionalInformation)
+		const { value: length } = getArgument(state, additionalInformation)
 		const value: Record<string, any> = {}
 		for (let i = 0; i < length; i++) {
 			const key = decodeValue(state)
