@@ -24,9 +24,7 @@ const numbers = [
 	Number.MIN_SAFE_INTEGER,
 
 	Number.MAX_SAFE_INTEGER + 1,
-	// there's a bug in node-cbor affecting this number
-	// https://github.com/hildjj/node-cbor/issues/155
-	// Number.MIN_SAFE_INTEGER - 1,
+	Number.MIN_SAFE_INTEGER - 1,
 	Number.MIN_SAFE_INTEGER - 3,
 
 	Number.MIN_VALUE,
