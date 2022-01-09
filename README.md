@@ -150,7 +150,7 @@ declare class UnsafeIntegerError extends RangeError {
 
 ## Testing
 
-Tests use [AVA 4](https://github.com/avajs/ava) (currently in alpha) and live in the [test](./test/) directory. Tests use [node-cbor](https://github.com/hildjj/node-cbor/) to validate encoding results. More tests are always welcome!
+Tests use [AVA](https://github.com/avajs/ava) and live in the [test](./test/) directory. Tests use [node-cbor](https://github.com/hildjj/node-cbor/) to validate encoding results. More tests are always welcome!
 
 ```
 npm run test
