@@ -1,7 +1,7 @@
 {
 	"name": "microcbor",
 	"version": "0.1.1",
-	"description": "Encode JSON values as canonical CBOR",
+	"description": "Encode JavaScript values as canonical CBOR",
 	"type": "module",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -27,11 +27,11 @@
 	},
 	"homepage": "https://github.com/joeltg/microcbor#readme",
 	"devDependencies": {
-		"ava": "^4.0.0",
+		"ava": "^4.3.1",
 		"cbor": "^8.0.2",
-		"typescript": "^4.4.2"
+		"typescript": "^4.8.2"
 	},
 	"dependencies": {
-		"fp16": "^0.1.3"
+		"fp16": "^0.2.0"
 	}
 }
