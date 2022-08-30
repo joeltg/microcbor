@@ -19,7 +19,7 @@ This library is TypeScript-native, ESM-only, and has just one dependency ([joelt
   - [Encoding](#encoding)
   - [Decoding](#decoding)
   - [Encoding length](#encoding-length)
-- [Support](#support)
+- [Value mapping](#value-mapping)
 - [Testing](#testing)
 - [Benchmarks](#benchmarks)
 - [Contributing](#contributing)
