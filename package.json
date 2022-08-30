@@ -1,6 +1,6 @@
 {
 	"name": "microcbor",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "Encode JavaScript values as canonical CBOR",
 	"type": "module",
 	"main": "lib/index.js",
