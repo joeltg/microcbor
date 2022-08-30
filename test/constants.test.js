@@ -13,3 +13,8 @@ test("null", (t) => {
 	testEncode(t, null, "encode null")
 	testDecode(t, null, "decode null")
 })
+
+test("undefined", (t) => {
+	testEncode(t, undefined, "encode undefined")
+	testDecode(t, undefined, "decode undefined")
+})

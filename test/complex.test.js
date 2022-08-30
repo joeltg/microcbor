@@ -1,121 +1,105 @@
 import test from "ava"
 import cbor from "cbor"
-import { encode, decode } from "../lib/index.js"
+import {
+	encode,
+	decode,
+	encodeStream,
+	decodeStream,
+	encodingLength,
+} from "../lib/index.js"
 
-// these sample JSON values were copied from
-// https://opensource.adobe.com/Spry/samples/data_region/JSONDataSetSample.html
-
-const values = [
-	[100, 500, 300, 200, 400],
-	[
-		{ color: "red", value: "#f00" },
-		{ color: "green", value: "#0f0" },
-		{ color: "blue", value: "#00f" },
-		{ color: "cyan", value: "#0ff" },
-		{ color: "magenta", value: "#f0f" },
-		{ color: "yellow", value: "#ff0" },
-		{ color: "black", value: "#000" },
-	],
-	{ color: "red", value: "#f00" },
-	[
-		{
-			id: "0001",
-			type: "donut",
-			name: "Cake",
-			ppu: 0.55,
-			batters: {
-				batter: [
-					{ id: "1001", type: "Regular" },
-					{ id: "1002", type: "Chocolate" },
-					{ id: "1003", type: "Blueberry" },
-					{ id: "1004", type: "Devil's Food" },
-				],
-			},
-			topping: [
-				{ id: "5001", type: "None" },
-				{ id: "5002", type: "Glazed" },
-				{ id: "5005", type: "Sugar" },
-				{ id: "5007", type: "Powdered Sugar" },
-				{ id: "5006", type: "Chocolate with Sprinkles" },
-				{ id: "5003", type: "Chocolate" },
-				{ id: "5004", type: "Maple" },
-			],
-		},
-		{
-			id: "0003",
-			type: "donut",
-			name: "Old Fashioned",
-			ppu: 0.55,
-			batters: {
-				batter: [
-					{ id: "1001", type: "Regular" },
-					{ id: "1002", type: "Chocolate" },
-				],
-			},
-			topping: [
-				{ id: "5001", type: "None" },
-				{ id: "5002", type: "Glazed" },
-				{ id: "5003", type: "Chocolate" },
-				{ id: "5004", type: "Maple" },
-			],
-		},
-	],
-	{
-		id: "0001",
-		type: "donut",
-		name: "Cake",
-		image: {
-			url: "images/0001.jpg",
-			width: 200,
-			height: 200,
-		},
-		thumbnail: {
-			url: "images/thumbnails/0001.jpg",
-			width: 32,
-			height: 32,
-		},
-	},
-	{
-		items: {
-			item: [
-				{
-					id: "0001",
-					type: "donut",
-					name: "Cake",
-					ppu: 0.55,
-					batters: {
-						batter: [
-							{ id: "1001", type: "Regular" },
-							{ id: "1002", type: "Chocolate" },
-							{ id: "1003", type: "Blueberry" },
-							{ id: "1004", type: "Devil's Food" },
-						],
-					},
-					topping: [
-						{ id: "5001", type: "None" },
-						{ id: "5002", type: "Glazed" },
-						{ id: "5005", type: "Sugar" },
-						{ id: "5007", type: "Powdered Sugar" },
-						{ id: "5006", type: "Chocolate with Sprinkles" },
-						{ id: "5003", type: "Chocolate" },
-						{ id: "5004", type: "Maple" },
-					],
-				},
-			],
-		},
-	},
-]
+import values from "./JSONDataSetSample.js"
 
 test("complex nested objects", (t) => {
 	for (const [i, value] of values.entries()) {
 		const reference = cbor.encodeCanonical(value)
 
+		const data = encode(value)
+
 		t.deepEqual(
-			Buffer.from(encode(value)),
+			Buffer.from(data),
 			reference,
 			`encode complex nested object ${i}`
 		)
 
+		t.is(data.length, encodingLength(value))
+
 		t.deepEqual(decode(reference), value, `decode complex nested object ${i}`)
 	}
+})
+
+test("encode value stream", async (t) => {
+	const reference = Buffer.concat(
+		values.map((value) => cbor.encodeCanonical(value))
+	)
+
+	async function* streamValues() {
+		for (const value of values) yield value
+	}
+
+	const chunks = []
+	for await (const chunk of encodeStream(streamValues())) {
+		chunks.push(chunk)
+	}
+
+	t.deepEqual(Buffer.concat(chunks), reference)
+})
+
+test("decode value stream in chunks of 10 bytes", async (t) => {
+	const reference = Buffer.concat(
+		values.map((value) => cbor.encodeCanonical(value))
+	)
+
+	const chunkSize = 10
+	async function* streamChunks() {
+		let offset = 0
+		while (offset < reference.byteLength) {
+			yield reference.subarray(offset, offset + chunkSize)
+			offset += chunkSize
+		}
+	}
+
+	const decodedValues = []
+	for await (const value of decodeStream(streamChunks())) {
+		decodedValues.push(value)
+	}
+
+	t.deepEqual(decodedValues, values)
+})
+
+test("compose encodeStream(decodeStream()) | chunkSize = 16", async (t) => {
+	const reference = Buffer.concat(
+		values.map((value) => cbor.encodeCanonical(value))
+	)
+
+	const chunkSize = 16
+	async function* streamChunks() {
+		let offset = 0
+		while (offset < reference.byteLength) {
+			yield reference.subarray(offset, offset + chunkSize)
+			offset += chunkSize
+		}
+	}
+
+	const chunks = []
+	for await (const chunk of encodeStream(decodeStream(streamChunks()))) {
+		chunks.push(chunk)
+	}
+
+	t.deepEqual(Buffer.concat(chunks), reference)
+})
+
+test("compose decodeStream(encodeStream()) | chunkSize = 64", async (t) => {
+	async function* streamValues() {
+		for (const value of values) yield value
+	}
+
+	const decodedValues = []
+	for await (const value of decodeStream(
+		encodeStream(streamValues(), { chunkSize: 64 })
+	)) {
+		decodedValues.push(value)
+	}
+
+	t.deepEqual(decodedValues, values)
 })
