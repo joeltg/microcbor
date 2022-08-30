@@ -4,7 +4,7 @@
 
 Encode JavaScript values as canonical CBOR.
 
-microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation. You can use microcbor to serialize JavaScript values to CBOR, and to deserialize them back into JavaScript values again. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
+microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation. You can use microcbor to serialize JavaScript values to `Uint8Array`s, and to deserialize them back into JavaScript values again. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
 
 microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise lexicographic order. `NaN` is always serialized as `0xf97e00`.
 
