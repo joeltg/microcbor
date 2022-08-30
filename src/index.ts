@@ -1,2 +1,6 @@
-export * from "./encode.js"
-export * from "./decode.js"
+export { encode } from "./encode.js"
+export { decode } from "./decode.js"
+export { encodeStream } from "./encodeStream.js"
+export { decodeStream } from "./decodeStream.js"
+export { encodingLength } from "./encodingLength.js"
+export { UnsafeIntegerError } from "./utils.js"
