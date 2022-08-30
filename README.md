@@ -4,21 +4,21 @@
 
 Encode JavaScript values as canonical CBOR.
 
-microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation. You can use microcbor to serialize JavaScript values to `Uint8Array`s, and to deserialize them back into JavaScript values again. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
+microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation featuring
 
-microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise lexicographic order. `NaN` is always serialized as `0xf97e00`.
+- a small footprint,
+- fast performance, and
+- an async iterable streaming API
 
-This library is TypeScript-native, ESM-only, and has just one dependency ([joeltg/fp16](https://github.com/joeltg/fp16) for half-precision floats). It works in Node, the browser, and Deno.
+microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise lexicographic order. `NaN` is always serialized as `0xf97e00`. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
+
+This library is TypeScript-native, ESM-only, and has just one dependency [joeltg/fp16](https://github.com/joeltg/fp16) for half-precision floats. It works in Node, the browser, and Deno.
 
 ## Table of Contents
 
 - [Install](#install)
 - [Usage](#usage)
 - [API](#api)
-  - [Value types](#value-types)
-  - [Encoding](#encoding)
-  - [Decoding](#decoding)
-  - [Encoding length](#encoding-length)
 - [Value mapping](#value-mapping)
 - [Testing](#testing)
 - [Benchmarks](#benchmarks)
@@ -34,15 +34,7 @@ npm i microcbor
 Or in Deno:
 
 ```typescript
-import {
-	encode,
-	decode,
-	encodeStream,
-	decodeStream,
-	encodingLength,
-	CBORValue,
-	UnsafeIntegerError,
-} from "https://cdn.skypack.dev/microcbor"
+import { encode, decode } from "https://cdn.skypack.dev/microcbor"
 ```
 
 ## Usage
@@ -65,56 +57,45 @@ console.log(decode(data))
 
 ## API
 
-### Value types
 
 ```ts
 declare type CBORValue =
-	| undefined
-	| null
-	| boolean
-	| number
-	| string
-	| Uint8Array
-	| CBORArray
-	| CBORMap
+  | undefined
+  | null
+  | boolean
+  | number
+  | string
+  | Uint8Array
+  | CBORArray
+  | CBORMap
 
 interface CBORArray extends Array<CBORValue> {}
 interface CBORMap {
-	[key: string]: CBORValue
+  [key: string]: CBORValue
 }
-```
 
-### Encoding
-
-```typescript
+// If not provided, chunkSize defaults to 512 bytes.
+// It's only a guideline; `encodeStream` won't break up
+// individual CBOR values like strings or byte arrays
+// that are larger than the provided chunk size.
 declare function encode(
-	value: CBORValue,
-	options: { chunkSize?: number } = {}
+  value: CBORValue,
+  options?: { chunkSize?: number }
 ): Uint8Array
 
 declare function encodeStream(
-	source: AsyncIterable<CBORValue>,
-	options?: { chunkSize?: number }
+  source: AsyncIterable<CBORValue>,
+  options?: { chunkSize?: number }
 ): AsyncIterable<Uint8Array>
-```
 
-If not provided, `chunkSize` defaults to 512 bytes. It's only a guideline; `encodeStream` won't break up individual CBOR values like strings or byte arrays that are larger than the provided chunk size.
-
-### Decoding
-
-```typescript
 declare function decode(data: Uint8Array): CBORValue
 
 declare function decodeStream(
-	source: AsyncIterable<Uint8Array>
+  source: AsyncIterable<Uint8Array>
 ): AsyncIterable<CBORValue>
-```
 
-### Encoding length
-
-You can measure the byte length that a given value will serialize to without actually allocating anything.
-
-```ts
+// You can measure the byte length that a given value will
+// serialize to without actually allocating anything.
 declare function encodingLength(value: CBORValue): number
 ```
 
@@ -125,8 +106,8 @@ declare function encodingLength(value: CBORValue): number
 
 ```typescript
 declare class UnsafeIntegerError extends RangeError {
-	readonly value: bigint
-	constructor(message: string, value: bigint)
+  readonly value: bigint
+  constructor(message: string, value: bigint)
 }
 ```
 
@@ -140,7 +121,7 @@ declare class UnsafeIntegerError extends RangeError {
 | `3` (UTF-8 string)           | `string`       |                                                          |
 | `4` (array)                  | `Array`        |                                                          |
 | `5` (map)                    | `Object`       | decoding throws an error on non-string keys              |
-| `6` (tagged item)            | Unsupported ❌ |                                                          |
+| `6` (tagged item)            | **Unsupported** |                                                          |
 | `7` (floating-point numbers) | `number`       |                                                          |
 | `7` (booleans)               | `boolean`      |                                                          |
 | `7` (null)                   | `null`         |                                                          |
