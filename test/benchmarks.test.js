@@ -22,14 +22,17 @@ function timeRounds(values, rounds, f) {
 }
 
 test("time encode()", (t) => {
-	t.log(`microcbor:`, timeRounds(values, 100, encode), "(ms)")
+	t.log("microcbor:", timeRounds(values, 100, encode), "(ms)")
 	t.log("node-cbor:", timeRounds(values, 100, cbor.encodeCanonical), "(ms)")
+	t.log("JSON.stringify:", timeRounds(values, 100, JSON.stringify), "(ms)")
 	t.pass()
 })
 
 test("time decode()", (t) => {
 	const encodedValues = values.map(encode)
+	const stringifiedValues = values.map(JSON.stringify)
 	t.log(`microcbor:`, timeRounds(encodedValues, 100, decode), "(ms)")
 	t.log("node-cbor:", timeRounds(encodedValues, 100, cbor.decode), "(ms)")
+	t.log("JSON.parse:", timeRounds(stringifiedValues, 100, JSON.parse), "(ms)")
 	t.pass()
 })

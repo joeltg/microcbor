@@ -57,21 +57,20 @@ console.log(decode(data))
 
 ## API
 
-
 ```ts
 declare type CBORValue =
-  | undefined
-  | null
-  | boolean
-  | number
-  | string
-  | Uint8Array
-  | CBORArray
-  | CBORMap
+	| undefined
+	| null
+	| boolean
+	| number
+	| string
+	| Uint8Array
+	| CBORArray
+	| CBORMap
 
 interface CBORArray extends Array<CBORValue> {}
 interface CBORMap {
-  [key: string]: CBORValue
+	[key: string]: CBORValue
 }
 
 // If not provided, chunkSize defaults to 512 bytes.
@@ -79,19 +78,19 @@ interface CBORMap {
 // individual CBOR values like strings or byte arrays
 // that are larger than the provided chunk size.
 declare function encode(
-  value: CBORValue,
-  options?: { chunkSize?: number }
+	value: CBORValue,
+	options?: { chunkSize?: number }
 ): Uint8Array
 
 declare function encodeStream(
-  source: AsyncIterable<CBORValue>,
-  options?: { chunkSize?: number }
+	source: AsyncIterable<CBORValue>,
+	options?: { chunkSize?: number }
 ): AsyncIterable<Uint8Array>
 
 declare function decode(data: Uint8Array): CBORValue
 
 declare function decodeStream(
-  source: AsyncIterable<Uint8Array>
+	source: AsyncIterable<Uint8Array>
 ): AsyncIterable<CBORValue>
 
 // You can measure the byte length that a given value will
@@ -106,26 +105,26 @@ declare function encodingLength(value: CBORValue): number
 
 ```typescript
 declare class UnsafeIntegerError extends RangeError {
-  readonly value: bigint
-  constructor(message: string, value: bigint)
+	readonly value: bigint
+	constructor(message: string, value: bigint)
 }
 ```
 
 ## Value mapping
 
-| CBOR major type              | JavaScript     | notes                                                    |
-| ---------------------------- | -------------- | -------------------------------------------------------- |
-| `0` (non-negative integer)   | `number`       | decoding throws an `UnsafeIntegerError` on unsafe values |
-| `1` (negative integer)       | `number`       | decoding throws an `UnsafeIntegerError` on unsafe values |
-| `2` (byte string)            | `Uint8Array`   |                                                          |
-| `3` (UTF-8 string)           | `string`       |                                                          |
-| `4` (array)                  | `Array`        |                                                          |
-| `5` (map)                    | `Object`       | decoding throws an error on non-string keys              |
+| CBOR major type              | JavaScript      | notes                                                    |
+| ---------------------------- | --------------- | -------------------------------------------------------- |
+| `0` (non-negative integer)   | `number`        | decoding throws an `UnsafeIntegerError` on unsafe values |
+| `1` (negative integer)       | `number`        | decoding throws an `UnsafeIntegerError` on unsafe values |
+| `2` (byte string)            | `Uint8Array`    |                                                          |
+| `3` (UTF-8 string)           | `string`        |                                                          |
+| `4` (array)                  | `Array`         |                                                          |
+| `5` (map)                    | `Object`        | decoding throws an error on non-string keys              |
 | `6` (tagged item)            | **Unsupported** |                                                          |
-| `7` (floating-point numbers) | `number`       |                                                          |
-| `7` (booleans)               | `boolean`      |                                                          |
-| `7` (null)                   | `null`         |                                                          |
-| `7` (undefined)              | `undefined`    |                                                          |
+| `7` (floating-point numbers) | `number`        |                                                          |
+| `7` (booleans)               | `boolean`       |                                                          |
+| `7` (null)                   | `null`          |                                                          |
+| `7` (undefined)              | `undefined`     |                                                          |
 
 ## Testing
 
@@ -149,12 +148,14 @@ microcbor % npm run test -- test/benchmarks.test.js
 > ava
 
 
-  ✔ time encode() (382ms)
-    ℹ microcbor: 63.44141721725464 (ms)
-    ℹ node-cbor: 152.31466674804688 (ms)
-  ✔ time decode() (164ms)
-    ℹ microcbor: 72.13012504577637 (ms)
-    ℹ node-cbor: 87.16287469863892 (ms)
+  ✔ time encode() (390ms)
+    ℹ microcbor: 66.47262525558472 (ms)
+    ℹ node-cbor: 155.0249171257019 (ms)
+    ℹ JSON.stringify: 5.56374979019165 (ms)
+  ✔ time decode() (161ms)
+    ℹ microcbor: 64.23729228973389 (ms)
+    ℹ node-cbor: 91.34658432006836 (ms)
+    ℹ JSON.parse: 2.7592921257019043 (ms)
   ─
 
   2 tests passed
