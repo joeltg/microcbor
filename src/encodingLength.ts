@@ -1,6 +1,7 @@
 import { getFloat16Precision, getFloat32Precision, Precision } from "fp16"
+import type { CBORValue } from "./types.js"
 
-export function encodingLength(value: any): number {
+export function encodingLength(value: CBORValue): number {
 	if (value === false) {
 		return 1
 	} else if (value === true) {
