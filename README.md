@@ -140,7 +140,7 @@ declare class UnsafeIntegerError extends RangeError {
 | `3` (UTF-8 string)           | `string`       |                                                          |
 | `4` (array)                  | `Array`        |                                                          |
 | `5` (map)                    | `Object`       | decoding throws an error on non-string keys              |
-| `6` (tagged item)            | Unsupported ❌ | decoding throws an error on non-string keys              |
+| `6` (tagged item)            | Unsupported ❌ |                                                          |
 | `7` (floating-point numbers) | `number`       |                                                          |
 | `7` (booleans)               | `boolean`      |                                                          |
 | `7` (null)                   | `null`         |                                                          |
