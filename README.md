@@ -135,9 +135,12 @@ Tests use [AVA](https://github.com/avajs/ava) and live in the [test](./test/) di
 npm run test
 ```
 
-## Benchmarks
+## Comparison to node-cbor
 
-Basic testing in [src/benchmarks.test.js](src/benchmarks.test.js) indicate that microcbor is about **2x as fast** as node-cbor at encoding and about **1.5x as fast** as node-cbor at decoding.
+- microcbor runs isomorphically on the web, in Node, and in Deno. node-cbor ships a separate cbor-web package.
+- microcbor encodes `Uint8Array` values as CBOR byte strings (major type 2). node-cbor encodes `Uint8Array` values as tagged type arrays (major type 6 / RFC 8746), and encodes NodeJS `Buffer` values as CBOR byte strings (major type 2).
+- microcbor uses async iterables for its streaming API. node-cbor uses NodeJS streams.
+- microcbor is about **2x faster** than node-cbor at encoding and about **1.5x faster** than node-cbor at decoding.
 
 ```
 microcbor % npm run test -- test/benchmarks.test.js
