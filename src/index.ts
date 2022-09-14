@@ -1,4 +1,5 @@
-export { encode } from "./encode.js"
+export type { CBORValue, CBORMap, CBORArray } from "./types.js"
+export { encode, Encoder } from "./encode.js"
 export { decode } from "./decode.js"
 export { encodeStream } from "./encodeStream.js"
 export { decodeStream } from "./decodeStream.js"

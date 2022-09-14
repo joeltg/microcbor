@@ -15,9 +15,12 @@ export class Encoder {
 	private buffer: ArrayBuffer
 	private view: DataView
 	private offset: number
+	private readonly encoder = new TextEncoder()
+	private readonly chunkSize: number
 
-	constructor(readonly options: { chunkSize?: number } = {}) {
-		this.buffer = new ArrayBuffer(options.chunkSize || Encoder.defaultChunkSize)
+	constructor(options: { chunkSize?: number; noCopy?: boolean } = {}) {
+		this.chunkSize = options.chunkSize || Encoder.defaultChunkSize
+		this.buffer = new ArrayBuffer(this.chunkSize)
 		this.view = new DataView(this.buffer)
 		this.offset = 0
 		this.closed = false
@@ -26,46 +29,53 @@ export class Encoder {
 	private *allocate(size: number): Iterable<Uint8Array> {
 		if (this.buffer.byteLength < this.offset + size) {
 			yield new Uint8Array(this.buffer, 0, this.offset)
-			const byteLength = Math.max(
-				size,
-				this.options.chunkSize || Encoder.defaultChunkSize
-			)
+			const byteLength = Math.max(size, this.chunkSize)
 			this.buffer = new ArrayBuffer(byteLength)
 			this.view = new DataView(this.buffer)
 			this.offset = 0
 		}
 	}
 
-	private float16 = this.constant(2, (value) =>
+	private *float16(value: number) {
+		yield* this.allocate(2)
 		setFloat16(this.view, this.offset, value)
-	)
-	private float32 = this.constant(4, (value) =>
+		this.offset += 2
+	}
+
+	private *float32(value: number) {
+		yield* this.allocate(4)
 		this.view.setFloat32(this.offset, value)
-	)
-	private float64 = this.constant(8, (value) =>
+		this.offset += 4
+	}
+
+	private *float64(value: number) {
+		yield* this.allocate(8)
 		this.view.setFloat64(this.offset, value)
-	)
-	private uint8 = this.constant(1, (value) =>
+		this.offset += 8
+	}
+
+	private *uint8(value: number) {
+		yield* this.allocate(1)
 		this.view.setUint8(this.offset, value)
-	)
-	private uint16 = this.constant(2, (value) =>
+		this.offset += 1
+	}
+
+	private *uint16(value: number) {
+		yield* this.allocate(2)
 		this.view.setUint16(this.offset, value)
-	)
-	private uint32 = this.constant(4, (value) =>
+		this.offset += 2
+	}
+
+	private *uint32(value: number) {
+		yield* this.allocate(4)
 		this.view.setUint32(this.offset, value)
-	)
-	private uint64 = this.constant(8, (value) =>
+		this.offset += 4
+	}
+
+	private *uint64(value: number) {
+		yield* this.allocate(8)
 		this.view.setBigUint64(this.offset, BigInt(value))
-	)
-
-	private constant(size: number, f: (value: number) => void) {
-		const g = function* (this: Encoder, value: number): Iterable<Uint8Array> {
-			yield* this.allocate(size)
-			f(value)
-			this.offset += size
-		}
-
-		return g.bind(this)
+		this.offset += 8
 	}
 
 	private *encodeTypeAndArgument(
@@ -124,7 +134,7 @@ export class Encoder {
 	}
 
 	private *encodeString(value: string): Iterable<Uint8Array> {
-		const data = new TextEncoder().encode(value)
+		const data = this.encoder.encode(value)
 		yield* this.encodeTypeAndArgument(3, data.byteLength)
 		yield* this.allocate(data.byteLength)
 		new Uint8Array(this.buffer, this.offset).set(data)
