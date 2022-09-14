@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2022-09-14
+
+### Added
+
+- Add `Encoder` and `CBORValue` exports
+
 ## [0.2.0] - 2022-08-29
 
 ### Changed
@@ -21,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initial implementation and tests!
 - This changelog!
 
-[unreleased]: https://github.com/joeltg/big-varint/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/joeltg/big-varint/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/joeltg/big-varint/compare/v0.2.1
 [0.2.0]: https://github.com/joeltg/big-varint/compare/v0.2.0
 [0.1.0]: https://github.com/joeltg/big-varint/compare/v0.1.0
