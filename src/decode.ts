@@ -4,43 +4,47 @@ import type { CBORValue } from "./types.js"
 
 import { UnsafeIntegerError, maxSafeInteger, minSafeInteger } from "./utils.js"
 
-class Decoder {
-	private offset: number
-	private view: DataView
+export class Decoder {
+	#offset: number
+	#view: DataView
 
 	constructor(private readonly data: Uint8Array) {
-		this.offset = 0
-		this.view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+		this.#offset = 0
+		this.#view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+	}
+
+	public getOffset(): number {
+		return this.#offset
 	}
 
 	private constant =
 		<T>(size: number, f: () => T) =>
 		() => {
 			const value = f()
-			this.offset += size
+			this.#offset += size
 			return value
 		}
 
-	private float16 = this.constant(2, () => getFloat16(this.view, this.offset))
-	private float32 = this.constant(4, () => this.view.getFloat32(this.offset))
-	private float64 = this.constant(8, () => this.view.getFloat64(this.offset))
-	private uint8 = this.constant(1, () => this.view.getUint8(this.offset))
-	private uint16 = this.constant(2, () => this.view.getUint16(this.offset))
-	private uint32 = this.constant(4, () => this.view.getUint32(this.offset))
-	private uint64 = this.constant(8, () => this.view.getBigUint64(this.offset))
+	private float16 = this.constant(2, () => getFloat16(this.#view, this.#offset))
+	private float32 = this.constant(4, () => this.#view.getFloat32(this.#offset))
+	private float64 = this.constant(8, () => this.#view.getFloat64(this.#offset))
+	private uint8 = this.constant(1, () => this.#view.getUint8(this.#offset))
+	private uint16 = this.constant(2, () => this.#view.getUint16(this.#offset))
+	private uint32 = this.constant(4, () => this.#view.getUint32(this.#offset))
+	private uint64 = this.constant(8, () => this.#view.getBigUint64(this.#offset))
 
 	private decodeBytes(length: number): Uint8Array {
 		const value = new Uint8Array(length)
-		value.set(this.data.subarray(this.offset, this.offset + length), 0)
-		this.offset += length
+		value.set(this.data.subarray(this.#offset, this.#offset + length), 0)
+		this.#offset += length
 		return value
 	}
 
 	private decodeString(length: number): string {
 		const value = new TextDecoder().decode(
-			this.data.subarray(this.offset, this.offset + length)
+			this.data.subarray(this.#offset, this.#offset + length)
 		)
-		this.offset += length
+		this.#offset += length
 		return value
 	}
 

@@ -106,7 +106,6 @@ declare function encodingLength(value: CBORValue): number
 ```typescript
 declare class UnsafeIntegerError extends RangeError {
 	readonly value: bigint
-	constructor(message: string, value: bigint)
 }
 ```
 
