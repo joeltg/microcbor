@@ -58,11 +58,7 @@ function numberEncodingLength(value: number): number {
 		return integerEncodingLength(value)
 	} else if (Object.is(value, -0)) {
 		return floatEncodingLength(value)
-	} else if (
-		Math.floor(value) === value &&
-		Number.MIN_SAFE_INTEGER <= value &&
-		value <= Number.MAX_SAFE_INTEGER
-	) {
+	} else if (Math.floor(value) === value && Number.MIN_SAFE_INTEGER <= value && value <= Number.MAX_SAFE_INTEGER) {
 		return integerEncodingLength(value)
 	} else {
 		return floatEncodingLength(value)
@@ -138,8 +134,7 @@ function byteLength(string: string): number {
 			}
 
 			// valid surrogate pair
-			codePoint =
-				(((leadSurrogate - 0xd800) << 10) | (codePoint - 0xdc00)) + 0x10000
+			codePoint = (((leadSurrogate - 0xd800) << 10) | (codePoint - 0xdc00)) + 0x10000
 		} else if (leadSurrogate) {
 			// valid bmp char, but last char was a lead
 			bytes += 3

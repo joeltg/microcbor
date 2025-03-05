@@ -1,9 +1,4 @@
-import {
-	getFloat16Precision,
-	getFloat32Precision,
-	setFloat16,
-	Precision,
-} from "fp16"
+import { getFloat16Precision, getFloat32Precision, setFloat16, Precision } from "fp16"
 
 import type { CBORValue } from "./types.js"
 
@@ -78,10 +73,7 @@ export class Encoder {
 		this.offset += 8
 	}
 
-	private *encodeTypeAndArgument(
-		type: number,
-		argument: number
-	): Iterable<Uint8Array> {
+	private *encodeTypeAndArgument(type: number, argument: number): Iterable<Uint8Array> {
 		const additionalInformation = Encoder.getAdditionalInformation(argument)
 		yield* this.uint8((type << 5) | additionalInformation)
 		switch (additionalInformation) {
@@ -101,11 +93,7 @@ export class Encoder {
 			yield* this.encodeInteger(value)
 		} else if (Object.is(value, -0)) {
 			yield* this.encodeFloat(value)
-		} else if (
-			Math.floor(value) === value &&
-			Number.MIN_SAFE_INTEGER <= value &&
-			value <= Number.MAX_SAFE_INTEGER
-		) {
+		} else if (Math.floor(value) === value && Number.MIN_SAFE_INTEGER <= value && value <= Number.MAX_SAFE_INTEGER) {
 			yield* this.encodeInteger(value)
 		} else {
 			yield* this.encodeFloat(value)
@@ -228,10 +216,7 @@ export class Encoder {
 	}
 }
 
-export function encode(
-	value: CBORValue,
-	options: { chunkSize?: number } = {}
-): Uint8Array {
+export function encode(value: CBORValue, options: { chunkSize?: number } = {}): Uint8Array {
 	const encoder = new Encoder(options)
 
 	let byteLength = 0

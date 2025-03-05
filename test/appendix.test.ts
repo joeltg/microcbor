@@ -1,5 +1,5 @@
 import test from "ava"
-import { encode, decode } from "../lib/index.js"
+import { encode, decode } from "microcbor"
 
 import values from "./appendix_a.js"
 

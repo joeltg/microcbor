@@ -1,3 +1,9 @@
 export default {
-	files: ["./test/*.test.js"],
+	files: ["./test/*.test.ts"],
+	typescript: {
+		compile: false,
+		rewritePaths: {
+			"test/": "test/lib/",
+		},
+	},
 }

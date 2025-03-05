@@ -1,7 +1,7 @@
 import test from "ava"
 
 import cbor from "cbor"
-import { encode, decode } from "../lib/index.js"
+import { encode, decode } from "microcbor"
 
 import appendixTests from "./appendix_a.js"
 import jsonDataSetSample from "./JSONDataSetSample.js"
@@ -9,8 +9,8 @@ import jsonDataSetSample from "./JSONDataSetSample.js"
 // may as well use the entire test object lmao
 const values = [...appendixTests, ...jsonDataSetSample]
 
-function timeRounds(values, rounds, f) {
-	const results = []
+function timeRounds<I, O>(values: I[], rounds: number, f: (value: I) => O) {
+	const results: O[] = []
 	const start = performance.now()
 	for (let i = 0; i < rounds; i++) {
 		for (const value of values) {
@@ -29,8 +29,8 @@ test("time encode()", (t) => {
 })
 
 test("time decode()", (t) => {
-	const encodedValues = values.map(encode)
-	const stringifiedValues = values.map(JSON.stringify)
+	const encodedValues = values.map((value) => encode(value))
+	const stringifiedValues = values.map((value) => JSON.stringify(value))
 	t.log(`microcbor:`, timeRounds(encodedValues, 100, decode), "(ms)")
 	t.log("node-cbor:", timeRounds(encodedValues, 100, cbor.decode), "(ms)")
 	t.log("JSON.parse:", timeRounds(stringifiedValues, 100, JSON.parse), "(ms)")

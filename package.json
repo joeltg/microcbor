@@ -1,15 +1,20 @@
 {
 	"name": "microcbor",
 	"version": "0.3.0",
-	"description": "Encode JavaScript values as canonical CBOR",
 	"type": "module",
-	"main": "lib/index.js",
-	"types": "lib/index.d.ts",
 	"files": [
 		"lib"
 	],
+	"description": "Encode JavaScript values as canonical CBOR",
+	"main": "lib/index.js",
+	"types": "./lib/index.d.ts",
+	"exports": {
+		".": "./lib/index.js"
+	},
 	"scripts": {
-		"build": "tsc",
+		"dev": "tsc --build tsconfig.json test/tsconfig.json --watch",
+		"build": "tsc --build tsconfig.json test/tsconfig.json",
+		"clean": "tsc --build tsconfig.json test/tsconfig.json --clean",
 		"test": "ava"
 	},
 	"repository": {
@@ -27,11 +32,13 @@
 	},
 	"homepage": "https://github.com/joeltg/microcbor#readme",
 	"devDependencies": {
-		"ava": "^5.3.1",
+		"@ava/typescript": "^5.0.0",
+		"@types/node": "^22.13.9",
+		"ava": "^6.2.0",
 		"cbor": "^8.1.0",
-		"typescript": "^5.1.6"
+		"typescript": "^5.6.0"
 	},
 	"dependencies": {
-		"fp16": "^0.2.0"
+		"fp16": "^1.0.0"
 	}
 }

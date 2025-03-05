@@ -41,9 +41,7 @@ export class Decoder {
 	}
 
 	private decodeString(length: number): string {
-		const value = new TextDecoder().decode(
-			this.data.subarray(this.#offset, this.#offset + length)
-		)
+		const value = new TextDecoder().decode(this.data.subarray(this.#offset, this.#offset + length))
 		this.#offset += length
 		return value
 	}
@@ -65,9 +63,7 @@ export class Decoder {
 			const value = maxSafeInteger < uint64 ? Infinity : Number(uint64)
 			return { value, uint64 }
 		} else if (additionalInformation === 31) {
-			throw new Error(
-				"microcbor does not support decoding indefinite-length items"
-			)
+			throw new Error("microcbor does not support decoding indefinite-length items")
 		} else {
 			throw new Error("invalid argument encoding")
 		}
@@ -81,20 +77,14 @@ export class Decoder {
 		if (majorType === 0) {
 			const { value, uint64 } = this.getArgument(additionalInformation)
 			if (uint64 !== undefined && maxSafeInteger < uint64) {
-				throw new UnsafeIntegerError(
-					"cannot decode integers greater than 2^53-1",
-					uint64
-				)
+				throw new UnsafeIntegerError("cannot decode integers greater than 2^53-1", uint64)
 			} else {
 				return value
 			}
 		} else if (majorType === 1) {
 			const { value, uint64 } = this.getArgument(additionalInformation)
 			if (uint64 !== undefined && -1n - uint64 < minSafeInteger) {
-				throw new UnsafeIntegerError(
-					"cannot decode integers less than -2^53+1",
-					-1n - uint64
-				)
+				throw new UnsafeIntegerError("cannot decode integers less than -2^53+1", -1n - uint64)
 			} else {
 				return -1 - value
 			}
@@ -135,9 +125,7 @@ export class Decoder {
 				case 23:
 					return undefined
 				case 24:
-					throw new Error(
-						"microcbor does not support decoding unassigned simple values"
-					)
+					throw new Error("microcbor does not support decoding unassigned simple values")
 				case 25:
 					return this.float16()
 				case 26:
@@ -145,9 +133,7 @@ export class Decoder {
 				case 27:
 					return this.float64()
 				case 31:
-					throw new Error(
-						"microcbor does not support decoding indefinite-length items"
-					)
+					throw new Error("microcbor does not support decoding indefinite-length items")
 				default:
 					throw new Error("invalid simple value")
 			}

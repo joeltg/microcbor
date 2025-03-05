@@ -1,12 +1,6 @@
 import test from "ava"
 import cbor from "cbor"
-import {
-	encode,
-	decode,
-	encodeStream,
-	decodeStream,
-	encodingLength,
-} from "../lib/index.js"
+import { encode, decode, encodeStream, decodeStream, encodingLength } from "microcbor"
 
 import values from "./JSONDataSetSample.js"
 
@@ -16,11 +10,7 @@ test("complex nested objects", (t) => {
 
 		const data = encode(value)
 
-		t.deepEqual(
-			Buffer.from(data),
-			reference,
-			`encode complex nested object ${i}`
-		)
+		t.deepEqual(Buffer.from(data), reference, `encode complex nested object ${i}`)
 
 		t.is(data.length, encodingLength(value))
 
@@ -29,9 +19,7 @@ test("complex nested objects", (t) => {
 })
 
 test("encode value stream", async (t) => {
-	const reference = Buffer.concat(
-		values.map((value) => cbor.encodeCanonical(value))
-	)
+	const reference = Buffer.concat(values.map((value) => cbor.encodeCanonical(value)))
 
 	async function* streamValues() {
 		for (const value of values) yield value
@@ -46,9 +34,7 @@ test("encode value stream", async (t) => {
 })
 
 test("decode value stream in chunks of 10 bytes", async (t) => {
-	const reference = Buffer.concat(
-		values.map((value) => cbor.encodeCanonical(value))
-	)
+	const reference = Buffer.concat(values.map((value) => cbor.encodeCanonical(value)))
 
 	const chunkSize = 10
 	async function* streamChunks() {
@@ -68,9 +54,7 @@ test("decode value stream in chunks of 10 bytes", async (t) => {
 })
 
 test("compose encodeStream(decodeStream()) | chunkSize = 16", async (t) => {
-	const reference = Buffer.concat(
-		values.map((value) => cbor.encodeCanonical(value))
-	)
+	const reference = Buffer.concat(values.map((value) => cbor.encodeCanonical(value)))
 
 	const chunkSize = 16
 	async function* streamChunks() {
@@ -95,9 +79,7 @@ test("compose decodeStream(encodeStream()) | chunkSize = 64", async (t) => {
 	}
 
 	const decodedValues = []
-	for await (const value of decodeStream(
-		encodeStream(streamValues(), { chunkSize: 64 })
-	)) {
+	for await (const value of decodeStream(encodeStream(streamValues(), { chunkSize: 64 }))) {
 		decodedValues.push(value)
 	}
 

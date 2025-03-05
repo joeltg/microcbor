@@ -58,40 +58,27 @@ console.log(decode(data))
 ## API
 
 ```ts
-declare type CBORValue =
-	| undefined
-	| null
-	| boolean
-	| number
-	| string
-	| Uint8Array
-	| CBORArray
-	| CBORMap
+declare type CBORValue = undefined | null | boolean | number | string | Uint8Array | CBORArray | CBORMap
 
 interface CBORArray extends Array<CBORValue> {}
 interface CBORMap {
-	[key: string]: CBORValue
+  [key: string]: CBORValue
 }
 
 // If not provided, chunkSize defaults to 512 bytes.
 // It's only a guideline; `encodeStream` won't break up
 // individual CBOR values like strings or byte arrays
 // that are larger than the provided chunk size.
-declare function encode(
-	value: CBORValue,
-	options?: { chunkSize?: number }
-): Uint8Array
+declare function encode(value: CBORValue, options?: { chunkSize?: number }): Uint8Array
 
 declare function encodeStream(
-	source: AsyncIterable<CBORValue>,
-	options?: { chunkSize?: number }
+  source: AsyncIterable<CBORValue>,
+  options?: { chunkSize?: number },
 ): AsyncIterable<Uint8Array>
 
 declare function decode(data: Uint8Array): CBORValue
 
-declare function decodeStream(
-	source: AsyncIterable<Uint8Array>
-): AsyncIterable<CBORValue>
+declare function decodeStream(source: AsyncIterable<Uint8Array>): AsyncIterable<CBORValue>
 
 // You can measure the byte length that a given value will
 // serialize to without actually allocating anything.
@@ -105,7 +92,7 @@ declare function encodingLength(value: CBORValue): number
 
 ```typescript
 declare class UnsafeIntegerError extends RangeError {
-	readonly value: bigint
+  readonly value: bigint
 }
 ```
 

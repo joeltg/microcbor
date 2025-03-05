@@ -1,7 +1,8 @@
 import test from "ava"
 import cbor from "cbor"
 
-import { encode, decode, encodingLength } from "../lib/index.js"
+import { encode, decode, encodingLength } from "microcbor"
+import assert from "node:assert"
 
 const strings = [
 	"hello world",
@@ -35,7 +36,7 @@ const strings = [
 	sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 	Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 	Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-	Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
+	Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`,
 	),
 ]
 
@@ -43,15 +44,11 @@ test("strings", (t) => {
 	for (const [i, value] of strings.entries()) {
 		const data = encode(value)
 		t.is(data.length, encodingLength(value))
-		t.deepEqual(
-			Buffer.from(data),
-			cbor.encodeCanonical(value),
-			`encode string ${i}`
-		)
+		t.deepEqual(Buffer.from(data), cbor.encodeCanonical(value), `encode string ${i}`)
 
 		const result = decode(cbor.encodeCanonical(value))
 		if (Buffer.isBuffer(value)) {
-			t.true(result instanceof Uint8Array)
+			assert(result instanceof Uint8Array)
 			t.deepEqual(Buffer.from(result), value, `decode buffer ${i}`)
 		} else {
 			t.deepEqual(result, value, `decode string ${i}`)
