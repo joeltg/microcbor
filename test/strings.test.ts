@@ -31,6 +31,11 @@ const strings = [
 	"a string 👀 with emojis 😡 that makes 👨‍👧‍👦 the string length 👍🏿 different than the byte length 🤯",
 	"👨‍👧‍👦".repeat(1000),
 	Buffer.from([1, 2, 3, 4, 5]),
+	`Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+	sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+	Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+	Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+	Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`,
 	Buffer.from(
 		`Lorem ipsum dolor sit amet, consectetur adipiscing elit,
 	sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -42,7 +47,8 @@ const strings = [
 
 test("strings", (t) => {
 	for (const [i, value] of strings.entries()) {
-		const data = encode(value)
+		// use a tiny chunk irregular size for tests
+		const data = encode(value, { chunkSize: 17 })
 		t.is(data.length, encodingLength(value))
 		t.deepEqual(Buffer.from(data), cbor.encodeCanonical(value), `encode string ${i}`)
 

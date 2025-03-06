@@ -84,7 +84,7 @@ function floatEncodingLength(value: number): number {
 }
 
 function stringEncodingLength(value: string) {
-	const length = byteLength(value)
+	const length = getByteLength(value)
 	return argumentEncodingLength(length) + length
 }
 
@@ -94,7 +94,7 @@ function bytesEncodingLength(value: Uint8Array) {
 }
 
 // https://github.com/feross/buffer/blob/57caad4450d241207066ca3832fb8e9095ad402f/index.js#L434
-function byteLength(string: string): number {
+export function getByteLength(string: string): number {
 	let codePoint
 
 	const length = string.length

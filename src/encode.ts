@@ -1,33 +1,53 @@
 import { getFloat16Precision, getFloat32Precision, setFloat16, Precision } from "fp16"
 
 import type { CBORValue } from "./types.js"
+import { getByteLength } from "./encodingLength.js"
+import { assert } from "./utils.js"
 
 export class Encoder {
 	public static defaultChunkSize = 512
 
-	public closed: boolean
+	#closed: boolean
+	public readonly noCopy: boolean
+	public readonly chunkSize: number
 
-	private buffer: ArrayBuffer
-	private view: DataView
-	private offset: number
 	private readonly encoder = new TextEncoder()
-	private readonly chunkSize: number
+	private readonly buffer: ArrayBuffer
+	private readonly view: DataView
+	private offset: number
 
-	constructor(options: { chunkSize?: number; noCopy?: boolean } = {}) {
-		this.chunkSize = options.chunkSize || Encoder.defaultChunkSize
+	constructor(options: { noCopy?: boolean; chunkSize?: number } = {}) {
+		this.noCopy = options.noCopy ?? false
+		this.chunkSize = options.chunkSize ?? Encoder.defaultChunkSize
+		assert(this.chunkSize >= 8, "expected chunkSize >= 8")
+
 		this.buffer = new ArrayBuffer(this.chunkSize)
 		this.view = new DataView(this.buffer)
 		this.offset = 0
-		this.closed = false
+		this.#closed = false
+	}
+
+	public get closed() {
+		return this.#closed
+	}
+
+	#flush(): Uint8Array {
+		if (this.noCopy) {
+			const chunk = new Uint8Array(this.buffer, 0, this.offset)
+			this.offset = 0
+			return chunk
+		} else {
+			const chunk = new Uint8Array(this.offset)
+			chunk.set(new Uint8Array(this.buffer, 0, this.offset))
+			this.offset = 0
+			return chunk
+		}
 	}
 
 	private *allocate(size: number): Iterable<Uint8Array> {
+		assert(size <= 8, "expected size <= 8")
 		if (this.buffer.byteLength < this.offset + size) {
-			yield new Uint8Array(this.buffer, 0, this.offset)
-			const byteLength = Math.max(size, this.chunkSize)
-			this.buffer = new ArrayBuffer(byteLength)
-			this.view = new DataView(this.buffer)
-			this.offset = 0
+			yield this.#flush()
 		}
 	}
 
@@ -122,22 +142,45 @@ export class Encoder {
 	}
 
 	private *encodeString(value: string): Iterable<Uint8Array> {
-		const data = this.encoder.encode(value)
-		yield* this.encodeTypeAndArgument(3, data.byteLength)
-		yield* this.allocate(data.byteLength)
-		new Uint8Array(this.buffer, this.offset).set(data)
-		this.offset += data.byteLength
+		const byteLength = getByteLength(value)
+		yield* this.encodeTypeAndArgument(3, byteLength)
+
+		let start = 0
+		while (start < value.length) {
+			if (this.offset + 4 > this.buffer.byteLength) {
+				yield this.#flush()
+			}
+
+			const target = new Uint8Array(this.buffer, this.offset)
+			const result = this.encoder.encodeInto(value.slice(start), target)
+			start += result.read
+			this.offset += result.written
+			assert(this.offset <= this.buffer.byteLength, "expected this.offset <= this.buffer.byteLength")
+		}
 	}
 
 	private *encodeBytes(value: Uint8Array): Iterable<Uint8Array> {
 		yield* this.encodeTypeAndArgument(2, value.byteLength)
-		yield* this.allocate(value.byteLength)
-		new Uint8Array(this.buffer, this.offset, value.byteLength).set(value)
-		this.offset += value.byteLength
+
+		const target = new Uint8Array(this.buffer, 0, this.buffer.byteLength)
+
+		let start = 0
+		while (start < value.byteLength) {
+			if (this.offset >= this.buffer.byteLength) {
+				yield this.#flush()
+			}
+
+			const capacity = this.buffer.byteLength - this.offset
+			const remaining = value.byteLength - start
+			const chunkLength = Math.min(capacity, remaining)
+			target.set(value.subarray(start, start + chunkLength), this.offset)
+			start += chunkLength
+			this.offset += chunkLength
+		}
 	}
 
 	public *encodeValue(value: CBORValue): Iterable<Uint8Array> {
-		if (this.closed) {
+		if (this.#closed) {
 			return
 		}
 
@@ -171,11 +214,11 @@ export class Encoder {
 	}
 
 	public *flush(): Iterable<Uint8Array> {
-		if (this.closed) {
+		if (this.#closed) {
 			return
 		}
 
-		this.closed = true
+		this.#closed = true
 		if (this.offset > 0) {
 			yield new Uint8Array(this.buffer, 0, this.offset)
 		}

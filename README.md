@@ -8,7 +8,7 @@ microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation featur
 
 - a small footprint,
 - fast performance, and
-- an async iterable streaming API
+- `Iterable` and `AsyncIterable` streaming interfaces
 
 microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise lexicographic order. `NaN` is always serialized as `0xf97e00`. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
 
@@ -125,26 +125,40 @@ npm run test
 - microcbor runs isomorphically on the web, in Node, and in Deno. node-cbor ships a separate cbor-web package.
 - microcbor encodes `Uint8Array` values as CBOR byte strings (major type 2). node-cbor encodes `Uint8Array` values as tagged type arrays (major type 6 / RFC 8746), and encodes NodeJS `Buffer` values as CBOR byte strings (major type 2).
 - microcbor uses async iterables for its streaming API. node-cbor uses NodeJS streams.
-- microcbor is about **2x faster** than node-cbor at encoding and about **1.5x faster** than node-cbor at decoding.
+- microcbor is about **5x faster** than node-cbor at encoding, and comparable at decoding.
 
 ```
-microcbor % npm run test -- test/benchmarks.test.js
+microcbor % npm run test -- test/benchmarks.test.ts
 
-> microcbor@0.2.0 test
-> ava
+> microcbor@0.3.0 test
+> ava test/benchmarks.test.ts
 
-
-  ✔ time encode() (390ms)
-    ℹ microcbor: 66.47262525558472 (ms)
-    ℹ node-cbor: 155.0249171257019 (ms)
-    ℹ JSON.stringify: 5.56374979019165 (ms)
-  ✔ time decode() (161ms)
-    ℹ microcbor: 64.23729228973389 (ms)
-    ℹ node-cbor: 91.34658432006836 (ms)
-    ℹ JSON.parse: 2.7592921257019043 (ms)
-  ─
-
-  2 tests passed
+  ✔ time encode() (196ms)
+    ℹ microcbor: {
+        avg: 0.20750288999999897,
+        std: 0.1599497238014431,
+      } (ms)
+    ℹ node-cbor: {
+        avg: 1.012210439999998,
+        std: 1.1648550529513988,
+      } (ms)
+    ℹ JSON.stringify: {
+        avg: 0.011432450000000358,
+        std: 0.0014736483187953618,
+      } (ms)
+  ✔ time decode()
+    ℹ microcbor: {
+        avg: 0.3199704100000008,
+        std: 0.6562532760030573,
+      } (ms)
+    ℹ node-cbor: {
+        avg: 0.35316917000000214,
+        std: 0.32859580328312393,
+      } (ms)
+    ℹ JSON.parse: {
+        avg: 0.016885789999999474,
+        std: 0.0041605677456241505,
+      } (ms)
 ```
 
 ## Contributing

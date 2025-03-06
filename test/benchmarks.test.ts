@@ -9,16 +9,23 @@ import jsonDataSetSample from "./JSONDataSetSample.js"
 // may as well use the entire test object lmao
 const values = [...appendixTests, ...jsonDataSetSample]
 
-function timeRounds<I, O>(values: I[], rounds: number, f: (value: I) => O) {
-	const results: O[] = []
-	const start = performance.now()
+function timeRounds<I, O>(values: I[], rounds: number, f: (value: I) => O): { avg: number; std: number } {
+	const results = new Array<O>(values.length)
+	const times = new Array<number>(rounds)
 	for (let i = 0; i < rounds; i++) {
-		for (const value of values) {
-			results.push(f(value))
+		const start = performance.now()
+		for (const [j, value] of values.entries()) {
+			results[j] = f(value)
 		}
+		const end = performance.now()
+		times[i] = end - start
 	}
-	const end = performance.now()
-	return end - start
+
+	const sum = times.reduce((sum, t) => sum + t, 0)
+	const avg = sum / rounds
+	const delta2 = times.map((t) => Math.pow(t - avg, 2))
+	const std = Math.sqrt(delta2.reduce((sum, d) => sum + d, 0) / rounds)
+	return { avg, std }
 }
 
 test("time encode()", (t) => {
