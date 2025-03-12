@@ -1,7 +1,7 @@
 import { Precision, getFloat16Precision, getFloat32Precision, setFloat16 } from "fp16"
 
 import type { CBORValue } from "./types.js"
-import { assert, getByteLength } from "./utils.js"
+import { assert } from "./utils.js"
 
 export const FloatSize = {
 	f16: 16,
@@ -10,16 +10,34 @@ export const FloatSize = {
 }
 
 export interface EncodeOptions {
-	noCopy?: boolean
+	/**
+	 * Re-use the same underlying ArrayBuffer for all yielded chunks.
+	 * If this is enabled, the consumer must copy each chunk content
+	 * themselves to a new buffer if they wish to keep it.
+	 * This mode is useful for efficiently hashing objects without
+	 * ever allocating memory for the entire encoded result.
+	 * @default false
+	 */
+	chunkRecycling?: boolean
+
+	/**
+	 * Maximum chunk size
+	 * @default 4096
+	 */
 	chunkSize?: number
+
+	/**
+	 * Minimum bitsize for floating-point numbers: 16, 32, or 64
+	 * @default 16
+	 */
 	minFloatSize?: (typeof FloatSize)[keyof typeof FloatSize]
 }
 
 export class Encoder {
-	public static defaultChunkSize = 512
+	public static defaultChunkSize = 4096
 
 	#closed: boolean
-	public readonly noCopy: boolean
+	public readonly chunkRecycling: boolean
 	public readonly chunkSize: number
 	public readonly minFloatSize: (typeof FloatSize)[keyof typeof FloatSize]
 
@@ -31,7 +49,7 @@ export class Encoder {
 
 	constructor(options: EncodeOptions = {}) {
 		this.minFloatSize = options.minFloatSize ?? 16
-		this.noCopy = options.noCopy ?? false
+		this.chunkRecycling = options.chunkRecycling ?? false
 		this.chunkSize = options.chunkSize ?? Encoder.defaultChunkSize
 		assert(this.chunkSize >= 8, "expected chunkSize >= 8")
 
@@ -47,7 +65,7 @@ export class Encoder {
 	}
 
 	#flush(): Uint8Array {
-		if (this.noCopy) {
+		if (this.chunkRecycling) {
 			const chunk = new Uint8Array(this.buffer, 0, this.offset)
 			this.offset = 0
 			return chunk
@@ -281,7 +299,7 @@ export class Encoder {
 	}
 }
 
-export function encode(value: CBORValue, options: { chunkSize?: number } = {}): Uint8Array {
+export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Array {
 	const encoder = new Encoder(options)
 
 	let byteLength = 0
