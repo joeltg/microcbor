@@ -1,6 +1,6 @@
 # microcbor
 
-[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg)](https://github.com/RichardLitt/standard-readme) [![license](https://img.shields.io/github/license/joeltg/microcbor)](https://opensource.org/licenses/MIT) [![NPM version](https://img.shields.io/npm/v/microcbor)](https://www.npmjs.com/package/microcbor) ![TypeScript types](https://img.shields.io/npm/types/microcbor) ![lines of code](https://img.shields.io/tokei/lines/github/joeltg/microcbor)
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg)](https://github.com/RichardLitt/standard-readme) [![license](https://img.shields.io/github/license/joeltg/microcbor)](https://opensource.org/licenses/MIT) [![NPM version](https://img.shields.io/npm/v/microcbor)](https://www.npmjs.com/package/microcbor) ![TypeScript types](https://img.shields.io/npm/types/microcbor)
 
 Encode JavaScript values as canonical CBOR.
 
@@ -131,8 +131,8 @@ export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Arra
 ```ts
 /** Encode an iterable of CBOR values into an iterable of Uint8Array chunks */
 export function* encodeIterable(
-	source: Iterable<CBORValue>,
-	options: EncodeOptions = {},
+  source: Iterable<CBORValue>,
+  options: EncodeOptions = {},
 ): IterableIterator<Uint8Array>
 
 ```
@@ -142,8 +142,8 @@ export function* encodeIterable(
 ```ts
 /** Encode an async iterable of CBOR values into an async iterable of Uint8Array chunks */
 export async function* encodeAsyncIterable(
-	source: AsyncIterable<CBORValue>,
-	options: EncodeOptions = {},
+  source: AsyncIterable<CBORValue>,
+  options: EncodeOptions = {},
 ): AsyncIterableIterator<Uint8Array>
 
 ```
