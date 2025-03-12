@@ -12,7 +12,9 @@ export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
 			},
 		})
 
-		const chunks = new WeakMap<Uint8Array, { resolve: () => void; reject: (err: any) => void }>()
+		// We need to track whick chunks have been "processed" and only resolve each
+		// .transform() promise once all data from each chunk has been enqueued.
+		const chunks = new WeakMap<Uint8Array, { resolve: () => void }>()
 
 		async function pipe(controller: TransformStreamDefaultController<CBORValue>) {
 			const decoder = new Decoder(readable.values(), {
@@ -30,8 +32,8 @@ export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
 			},
 
 			transform(chunk) {
-				return new Promise<void>((resolve, reject) => {
-					chunks.set(chunk, { resolve, reject })
+				return new Promise<void>((resolve) => {
+					chunks.set(chunk, { resolve })
 					readableController.enqueue(chunk)
 				})
 			},
