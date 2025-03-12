@@ -8,12 +8,12 @@ microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation featur
 
 - small footprint
 - fast performance
-- memory-efficient "chunk recycling" streaming encoder
+- `Iterable` and `AsyncIterable` streaming APIs with "chunk recycling" encoding option
 - [Web Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API)-compatible [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream) classes
 
 microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise utf-8 lexicographic order. `NaN` is always serialized as `0xf97e00`. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
 
-This library is TypeScript-native, ESM-only, and has just one dependency [joeltg/fp16](https://github.com/joeltg/fp16) for half-precision floats.
+This library is TypeScript-native, ESM-only, and has just **one dependency** [joeltg/fp16](https://github.com/joeltg/fp16) for half-precision floats.
 
 ## Table of Contents
 
@@ -22,7 +22,17 @@ This library is TypeScript-native, ESM-only, and has just one dependency [joeltg
 - [API](#api)
   - [CBOR Values](#cbor-values)
   - [Encoding](#encoding)
+    - [`EncodeOptions`](#encodeoptions)
+    - [`encodingLength`](#encodinglength)
+    - [`encode`](#encode)
+    - [`encodeIterable`](#encodeiterable)
+    - [`encodeAsyncIterable`](#encodeasynciterable)
+    - [`CBOREncoderStream`](#cborencoderstream)
   - [Decoding](#decoding)
+    - [`decode`](#decode)
+    - [`decodeIterable`](#decodeiterable)
+    - [`decodeAsyncIterable`](#decodeasynciterable)
+    - [`CBORDecoderStream`](#cbordecoderstream)
 - [Value mapping](#value-mapping)
 - [Testing](#testing)
 - [Benchmarks](#benchmarks)
@@ -68,6 +78,8 @@ interface CBORMap {
 
 ### Encoding
 
+#### `EncodeOptions`
+
 ```ts
 export interface EncodeOptions {
   /**
@@ -92,55 +104,92 @@ export interface EncodeOptions {
    */
   minFloatSize?: (typeof FloatSize)[keyof typeof FloatSize]
 }
+```
 
+#### `encodingLength`
+
+```ts
 /**
  * Calculate the byte length that a value will encode into
  * without actually allocating anything.
  */
 declare function encodingLength(value: CBORValue): number
+```
 
+#### `encode`
+
+```ts
 /**
  * Encode a single CBOR value.
  * options.chunkRecycling has no effect here.
  */
 export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Array
+```
 
+#### `encodeIterable`
+
+```ts
 /** Encode an iterable of CBOR values into an iterable of Uint8Array chunks */
 export function* encodeIterable(
 	source: Iterable<CBORValue>,
 	options: EncodeOptions = {},
 ): IterableIterator<Uint8Array>
 
+```
+
+#### `encodeAsyncIterable`
+
+```ts
 /** Encode an async iterable of CBOR values into an async iterable of Uint8Array chunks */
 export async function* encodeAsyncIterable(
 	source: AsyncIterable<CBORValue>,
 	options: EncodeOptions = {},
 ): AsyncIterableIterator<Uint8Array>
 
+```
+
+#### `CBOREncoderStream`
+
+```ts
 /**
  * Encode a Web Streams API ReadableStream.
  * options.chunkRecycling has no effect here.
  */
 export class CBOREncoderStream extends TransformStream<CBORValue, Uint8Array> {
-	public constructor(options: EncodeOptions = {})
+  public constructor(options: EncodeOptions = {})
 }
 ```
 
 ### Decoding
 
+#### `decode`
+
 ```ts
 /** Decode a single CBOR value. */
 export function decode(data: Uint8Array): CBORValue
+```
 
+#### `decodeIterable`
+
+```ts
 /** Decode an iterable of Uint8Array chunks into an iterable of CBOR values */
 export function* decodeIterable(source: Iterable<Uint8Array>): IterableIterator<CBORValue>
 
+```
+
+#### `decodeAsyncIterable`
+
+```ts
 /** Decode an async iterable of Uint8Array chunks into an async iterable of CBOR values */
 export async function* decodeAsyncIterable(source: AsyncIterable<Uint8Array>): AsyncIterable<CBORValue>
+```
 
+#### `CBORDecoderStream`
+
+```ts
 /** Decode a Web Streams API ReadableStream. */
 export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
-	public constructor()
+  public constructor()
 }
 ```
 
