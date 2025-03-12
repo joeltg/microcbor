@@ -4,52 +4,94 @@ import type { CBORValue } from "./types.js"
 
 import { UnsafeIntegerError, maxSafeInteger, minSafeInteger } from "./utils.js"
 
-export class Decoder {
-	#offset: number
-	#view: DataView
-
-	constructor(private readonly data: Uint8Array) {
-		this.#offset = 0
-		this.#view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+class Decoder implements IterableIterator<CBORValue> {
+	private offset = 0
+	private byteLength = 0
+	private readonly chunks: Uint8Array[] = []
+	private readonly constantBuffer = new ArrayBuffer(8)
+	private readonly constantView = new DataView(this.constantBuffer)
+	private readonly iter: Iterator<Uint8Array, void, undefined>
+	constructor(source: Iterable<Uint8Array>) {
+		this.iter = source[Symbol.iterator]()
 	}
 
-	public getOffset(): number {
-		return this.#offset
+	[Symbol.iterator] = () => this
+
+	private allocate(size: number) {
+		while (this.byteLength < size) {
+			const { done, value } = this.iter.next()
+			if (done) {
+				throw new Error("stream ended prematurely")
+			} else {
+				this.chunks.push(value)
+				this.byteLength += value.byteLength
+			}
+		}
 	}
 
-	private constant =
-		<T>(size: number, f: () => T) =>
-		() => {
-			const value = f()
-			this.#offset += size
-			return value
+	private fill(target: Uint8Array) {
+		if (this.byteLength < target.byteLength) {
+			throw new Error("internal error - please file a bug report!")
 		}
 
-	private float16 = this.constant(2, () => getFloat16(this.#view, this.#offset))
-	private float32 = this.constant(4, () => this.#view.getFloat32(this.#offset))
-	private float64 = this.constant(8, () => this.#view.getFloat64(this.#offset))
-	private uint8 = this.constant(1, () => this.#view.getUint8(this.#offset))
-	private uint16 = this.constant(2, () => this.#view.getUint16(this.#offset))
-	private uint32 = this.constant(4, () => this.#view.getUint32(this.#offset))
-	private uint64 = this.constant(8, () => this.#view.getBigUint64(this.#offset))
+		let byteLength = 0
+		let deleteCount = 0
+		for (let i = 0; byteLength < target.byteLength; i++) {
+			const chunk = this.chunks[i]
+			const capacity = target.byteLength - byteLength
+			const length = chunk.byteLength - this.offset
+			if (length <= capacity) {
+				// copy the entire remainder of the chunk
+				target.set(chunk.subarray(this.offset), byteLength)
+				byteLength += length
+				deleteCount += 1
+				this.offset = 0
+				this.byteLength -= length
+			} else {
+				// fill the remainder of the target
+				target.set(chunk.subarray(this.offset, this.offset + capacity), byteLength)
+
+				byteLength += capacity // equivalent to break
+				this.offset += capacity
+				this.byteLength -= capacity
+			}
+		}
+
+		this.chunks.splice(0, deleteCount)
+	}
+
+	private constant = <T>(size: number, f: (view: DataView) => T) => {
+		return () => {
+			this.allocate(size)
+			const array = new Uint8Array(this.constantBuffer, 0, size)
+			this.fill(array)
+			return f(this.constantView)
+		}
+	}
+
+	private float16 = this.constant(2, (view) => getFloat16(view, 0))
+	private float32 = this.constant(4, (view) => view.getFloat32(0))
+	private float64 = this.constant(8, (view) => view.getFloat64(0))
+	private uint8 = this.constant(1, (view) => view.getUint8(0))
+	private uint16 = this.constant(2, (view) => view.getUint16(0))
+	private uint32 = this.constant(4, (view) => view.getUint32(0))
+	private uint64 = this.constant(8, (view) => view.getBigUint64(0))
 
 	private decodeBytes(length: number): Uint8Array {
-		const value = new Uint8Array(length)
-		value.set(this.data.subarray(this.#offset, this.#offset + length), 0)
-		this.#offset += length
-		return value
+		this.allocate(length)
+		const array = new Uint8Array(length)
+		this.fill(array)
+		return array
 	}
 
 	private decodeString(length: number): string {
-		const value = new TextDecoder().decode(this.data.subarray(this.#offset, this.#offset + length))
-		this.#offset += length
-		return value
+		this.allocate(length)
+		const data = new Uint8Array(length)
+		this.fill(data)
+		return new TextDecoder().decode(data)
 	}
 
-	private getArgument(additionalInformation: number): {
-		value: number
-		uint64?: bigint
-	} {
+	private getArgument(additionalInformation: number): { value: number; uint64?: bigint } {
 		if (additionalInformation < 24) {
 			return { value: additionalInformation }
 		} else if (additionalInformation === 24) {
@@ -69,7 +111,22 @@ export class Decoder {
 		}
 	}
 
-	public decodeValue(): CBORValue {
+	public next(): { done: true; value: undefined } | { done: false; value: CBORValue } {
+		while (this.byteLength === 0) {
+			const { done, value } = this.iter.next()
+			if (done) {
+				return { done: true, value: undefined }
+			} else if (value.byteLength > 0) {
+				this.chunks.push(value)
+				this.byteLength += value.byteLength
+			}
+		}
+
+		const value = this.decodeValue()
+		return { done: false, value }
+	}
+
+	private decodeValue(): CBORValue {
 		const initialByte = this.uint8()
 		const majorType = initialByte >> 5
 		const additionalInformation = initialByte & 0x1f
@@ -143,6 +200,7 @@ export class Decoder {
 	}
 }
 
-export function decode(data: Uint8Array): CBORValue {
-	return new Decoder(data).decodeValue()
+/** Decode an iterable of Uint8Array chunks into an iterable of CBOR values */
+export function* decodeIterable(source: Iterable<Uint8Array>): IterableIterator<CBORValue> {
+	yield* new Decoder(source)
 }

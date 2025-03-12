@@ -299,8 +299,12 @@ export class Encoder {
 	}
 }
 
+/**
+ * Encode a single CBOR value.
+ * options.chunkRecycling has no effect here.
+ */
 export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Array {
-	const encoder = new Encoder(options)
+	const encoder = new Encoder({ ...options, chunkRecycling: false })
 
 	let byteLength = 0
 	const chunks: Uint8Array[] = []

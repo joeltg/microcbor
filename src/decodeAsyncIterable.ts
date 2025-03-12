@@ -4,7 +4,7 @@ import type { CBORValue } from "./types.js"
 
 import { UnsafeIntegerError, maxSafeInteger, minSafeInteger } from "./utils.js"
 
-class DecoderStream implements AsyncIterableIterator<CBORValue> {
+class Decoder implements AsyncIterableIterator<CBORValue> {
 	private offset = 0
 	private byteLength = 0
 	private readonly chunks: Uint8Array[] = []
@@ -203,6 +203,7 @@ class DecoderStream implements AsyncIterableIterator<CBORValue> {
 	}
 }
 
-export async function* decodeStream(source: AsyncIterable<Uint8Array>): AsyncIterable<CBORValue> {
-	yield* new DecoderStream(source)
+/** Decode an async iterable of Uint8Array chunks into an async iterable of CBOR values */
+export async function* decodeAsyncIterable(source: AsyncIterable<Uint8Array>): AsyncIterableIterator<CBORValue> {
+	yield* new Decoder(source)
 }

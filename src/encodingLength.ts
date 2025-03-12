@@ -2,6 +2,10 @@ import { Precision, getFloat16Precision, getFloat32Precision } from "fp16"
 import { CBORValue } from "./types.js"
 import { getByteLength } from "./utils.js"
 
+/**
+ * Calculate the byte length that a value will encode into
+ * without actually allocating anything.
+ */
 export function encodingLength(value: CBORValue): number {
 	if (value === false) {
 		return 1

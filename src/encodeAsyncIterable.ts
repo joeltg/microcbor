@@ -1,11 +1,12 @@
 import type { CBORValue } from "./types.js"
 
-import { EncodeOptions, Encoder } from "./encode.js"
+import { EncodeOptions, Encoder } from "./Encoder.js"
 
-export async function* encodeStream(
+/** Encode an async iterable of CBOR values into an async iterable of Uint8Array chunks */
+export async function* encodeAsyncIterable(
 	source: AsyncIterable<CBORValue>,
 	options: EncodeOptions = {},
-): AsyncIterable<Uint8Array> {
+): AsyncIterableIterator<Uint8Array> {
 	const encoder = new Encoder(options)
 	for await (const value of source) {
 		yield* encoder.encodeValue(value)
