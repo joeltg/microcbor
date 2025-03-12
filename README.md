@@ -125,40 +125,48 @@ npm run test
 - microcbor runs isomorphically on the web, in Node, and in Deno. node-cbor ships a separate cbor-web package.
 - microcbor encodes `Uint8Array` values as CBOR byte strings (major type 2). node-cbor encodes `Uint8Array` values as tagged type arrays (major type 6 / RFC 8746), and encodes NodeJS `Buffer` values as CBOR byte strings (major type 2).
 - microcbor uses async iterables for its streaming API. node-cbor uses NodeJS streams.
-- microcbor is about **5x faster** than node-cbor at encoding, and comparable at decoding.
+- microcbor is about **4x faster** than node-cbor at canonical encoding, ~2x faster than node-cbor's default non-canonical encoding, and ~1.5x faster than node-cbor at decoding.
 
 ```
 microcbor % npm run test -- test/benchmarks.test.ts
 
-> microcbor@0.3.0 test
+> microcbor@0.4.0 test
 > ava test/benchmarks.test.ts
 
-  ✔ time encode() (196ms)
+
+  ✔ time encode() (237ms)
     ℹ microcbor: {
-        avg: 0.20750288999999897,
-        std: 0.1599497238014431,
+        avg: 0.2836770999999993,
+        std: 0.1553461595001637,
       } (ms)
     ℹ node-cbor: {
-        avg: 1.012210439999998,
-        std: 1.1648550529513988,
+        avg: 0.47247252999999945,
+        std: 0.6099837601508338,
+      } (ms)
+    ℹ node-cbor (canonical): {
+        avg: 0.9973837600000031,
+        std: 1.203792591464195,
       } (ms)
     ℹ JSON.stringify: {
-        avg: 0.011432450000000358,
-        std: 0.0014736483187953618,
+        avg: 0.009709539999999493,
+        std: 0.0014329558361671918,
       } (ms)
   ✔ time decode()
     ℹ microcbor: {
-        avg: 0.3199704100000008,
-        std: 0.6562532760030573,
+        avg: 0.19635871000000235,
+        std: 0.35634472331099276,
       } (ms)
     ℹ node-cbor: {
-        avg: 0.35316917000000214,
-        std: 0.32859580328312393,
+        avg: 0.35364794999999843,
+        std: 0.31256985912702206,
       } (ms)
     ℹ JSON.parse: {
-        avg: 0.016885789999999474,
-        std: 0.0041605677456241505,
+        avg: 0.018565019999997504,
+        std: 0.004339636959421219,
       } (ms)
+  ─
+
+  2 tests passed
 ```
 
 ## Contributing

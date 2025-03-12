@@ -30,7 +30,8 @@ function timeRounds<I, O>(values: I[], rounds: number, f: (value: I) => O): { av
 
 test("time encode()", (t) => {
 	t.log("microcbor:", timeRounds(values, 100, encode), "(ms)")
-	t.log("node-cbor:", timeRounds(values, 100, cbor.encodeCanonical), "(ms)")
+	t.log("node-cbor:", timeRounds(values, 100, cbor.encode), "(ms)")
+	t.log("node-cbor (canonical):", timeRounds(values, 100, cbor.encodeCanonical), "(ms)")
 	t.log("JSON.stringify:", timeRounds(values, 100, JSON.stringify), "(ms)")
 	t.pass()
 })

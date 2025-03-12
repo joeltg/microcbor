@@ -1,10 +1,10 @@
 import type { CBORValue } from "./types.js"
 
-import { Encoder } from "./encode.js"
+import { EncodeOptions, Encoder } from "./encode.js"
 
 export async function* encodeStream(
 	source: AsyncIterable<CBORValue>,
-	options: { chunkSize?: number; noCopy?: boolean } = {},
+	options: EncodeOptions = {},
 ): AsyncIterable<Uint8Array> {
 	const encoder = new Encoder(options)
 	for await (const value of source) {

@@ -1,8 +1,19 @@
-import { getFloat16Precision, getFloat32Precision, setFloat16, Precision } from "fp16"
+import { Precision, getFloat16Precision, getFloat32Precision, setFloat16 } from "fp16"
 
 import type { CBORValue } from "./types.js"
-import { getByteLength } from "./encodingLength.js"
-import { assert } from "./utils.js"
+import { assert, getByteLength } from "./utils.js"
+
+export const FloatSize = {
+	f16: 16,
+	f32: 32,
+	f64: 64,
+}
+
+export interface EncodeOptions {
+	noCopy?: boolean
+	chunkSize?: number
+	minFloatSize?: (typeof FloatSize)[keyof typeof FloatSize]
+}
 
 export class Encoder {
 	public static defaultChunkSize = 512
@@ -10,19 +21,23 @@ export class Encoder {
 	#closed: boolean
 	public readonly noCopy: boolean
 	public readonly chunkSize: number
+	public readonly minFloatSize: (typeof FloatSize)[keyof typeof FloatSize]
 
 	private readonly encoder = new TextEncoder()
 	private readonly buffer: ArrayBuffer
 	private readonly view: DataView
+	private readonly array: Uint8Array
 	private offset: number
 
-	constructor(options: { noCopy?: boolean; chunkSize?: number } = {}) {
+	constructor(options: EncodeOptions = {}) {
+		this.minFloatSize = options.minFloatSize ?? 16
 		this.noCopy = options.noCopy ?? false
 		this.chunkSize = options.chunkSize ?? Encoder.defaultChunkSize
 		assert(this.chunkSize >= 8, "expected chunkSize >= 8")
 
 		this.buffer = new ArrayBuffer(this.chunkSize)
 		this.view = new DataView(this.buffer)
+		this.array = new Uint8Array(this.buffer, 0, this.chunkSize)
 		this.offset = 0
 		this.#closed = false
 	}
@@ -129,10 +144,10 @@ export class Encoder {
 	}
 
 	private *encodeFloat(value: number): Iterable<Uint8Array> {
-		if (getFloat16Precision(value) === Precision.Exact) {
+		if (this.minFloatSize === FloatSize.f16 && getFloat16Precision(value) === Precision.Exact) {
 			yield* this.uint8(0xe0 | 25)
 			yield* this.float16(value)
-		} else if (getFloat32Precision(value) === Precision.Exact) {
+		} else if (this.minFloatSize <= FloatSize.f32 && getFloat32Precision(value) === Precision.Exact) {
 			yield* this.uint8(0xe0 | 26)
 			yield* this.float32(value)
 		} else {
@@ -142,28 +157,32 @@ export class Encoder {
 	}
 
 	private *encodeString(value: string): Iterable<Uint8Array> {
-		const byteLength = getByteLength(value)
-		yield* this.encodeTypeAndArgument(3, byteLength)
+		const bytes = this.encoder.encode(value)
+		yield* this.encodeTypeAndArgument(3, bytes.byteLength)
+		yield* this.writeBytes(bytes)
 
-		let start = 0
-		while (start < value.length) {
-			if (this.offset + 4 > this.buffer.byteLength) {
-				yield this.#flush()
-			}
+		// const byteLength = getByteLength(value)
 
-			const target = new Uint8Array(this.buffer, this.offset)
-			const result = this.encoder.encodeInto(value.slice(start), target)
-			start += result.read
-			this.offset += result.written
-			assert(this.offset <= this.buffer.byteLength, "expected this.offset <= this.buffer.byteLength")
-		}
+		// let start = 0
+		// while (start < value.length) {
+		// 	if (this.offset + 4 > this.buffer.byteLength) {
+		// 		yield this.#flush()
+		// 	}
+
+		// 	const target = new Uint8Array(this.buffer, this.offset)
+		// 	const result = this.encoder.encodeInto(value.slice(start), target)
+		// 	start += result.read
+		// 	this.offset += result.written
+		// 	assert(this.offset <= this.buffer.byteLength, "expected this.offset <= this.buffer.byteLength")
+		// }
 	}
 
 	private *encodeBytes(value: Uint8Array): Iterable<Uint8Array> {
 		yield* this.encodeTypeAndArgument(2, value.byteLength)
+		yield* this.writeBytes(value)
+	}
 
-		const target = new Uint8Array(this.buffer, 0, this.buffer.byteLength)
-
+	private *writeBytes(value: Uint8Array): Iterable<Uint8Array> {
 		let start = 0
 		while (start < value.byteLength) {
 			if (this.offset >= this.buffer.byteLength) {
@@ -173,7 +192,7 @@ export class Encoder {
 			const capacity = this.buffer.byteLength - this.offset
 			const remaining = value.byteLength - start
 			const chunkLength = Math.min(capacity, remaining)
-			target.set(value.subarray(start, start + chunkLength), this.offset)
+			this.array.set(value.subarray(start, start + chunkLength), this.offset)
 			start += chunkLength
 			this.offset += chunkLength
 		}
@@ -204,11 +223,15 @@ export class Encoder {
 				yield* this.encodeValue(element)
 			}
 		} else {
-			const keys = Object.keys(value).sort(Encoder.compareKeys)
-			yield* this.encodeTypeAndArgument(5, keys.length)
-			for (const key of keys) {
-				yield* this.encodeString(key)
-				yield* this.encodeValue(value[key])
+			const entries = Object.entries(value)
+				.map<[Uint8Array, CBORValue]>(([key, value]) => [this.encoder.encode(key), value])
+				.sort(Encoder.compareEntries)
+
+			yield* this.encodeTypeAndArgument(5, entries.length)
+			for (const [key, value] of entries) {
+				yield* this.encodeTypeAndArgument(3, key.byteLength)
+				yield* this.writeBytes(key)
+				yield* this.encodeValue(value)
 			}
 		}
 	}
@@ -218,30 +241,29 @@ export class Encoder {
 			return
 		}
 
-		this.#closed = true
 		if (this.offset > 0) {
-			yield new Uint8Array(this.buffer, 0, this.offset)
+			yield this.#flush()
 		}
 	}
 
 	// Per the deterministic CBOR spec, we're supposed to sort keys
 	// the byte-wise lexicographic order of the key's CBOR encoding
-	// - ie lower major types come before higher major types!
-	// However, microcbor only supports string keys, which means we
-	// can get away with sorting them without actually encoding them
-	// first. One thing we know for sure about strings is that a
-	// string with a smaller length will sort byte-wise before a string
+	// - ie lower major types come before higher major types.
+	// One thing we know for sure about strings is that a string with
+	// a smaller length will sort byte-wise before a string
 	// with a longer length, since strings are encoded with a length
 	// prefix (either in the additionalInformation bits, if < 24, or
 	// in the next serveral bytes, but in all cases the order holds).
-	private static compareKeys(a: string, b: string) {
-		if (a.length < b.length) {
-			return -1
-		} else if (b.length < a.length) {
-			return 1
-		} else {
-			return a < b ? -1 : 1
+	private static compareEntries([a]: [key: Uint8Array, value: CBORValue], [b]: [key: Uint8Array, value: CBORValue]) {
+		if (a.byteLength < b.byteLength) return -1
+		if (b.byteLength < a.byteLength) return 1
+
+		for (let i = 0; i < a.byteLength; i++) {
+			if (a[i] < b[i]) return -1
+			if (b[i] < a[i]) return 1
 		}
+
+		return 0
 	}
 
 	private static getAdditionalInformation(argument: number): number {

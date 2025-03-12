@@ -85,3 +85,10 @@ test("compose decodeStream(encodeStream()) | chunkSize = 64", async (t) => {
 
 	t.deepEqual(decodedValues, values)
 })
+
+test("encode objects with adversarial unicode keys", (t) => {
+	const keyA = "ﬁa"
+	const keyB = "👍"
+	const value = { [keyA]: 1, [keyB]: 2 }
+	t.deepEqual(Buffer.from(encode(value)), cbor.encodeCanonical(value))
+})
