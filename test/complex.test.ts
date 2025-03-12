@@ -1,6 +1,6 @@
 import test from "ava"
 import cbor from "cbor"
-import { encode, decode, encodeStream, decodeStream, encodingLength } from "microcbor"
+import { encode, decode, encodeAsyncIterable, decodeAsyncIterable, encodingLength } from "microcbor"
 
 import values from "./JSONDataSetSample.js"
 
@@ -26,7 +26,7 @@ test("encode value stream", async (t) => {
 	}
 
 	const chunks = []
-	for await (const chunk of encodeStream(streamValues())) {
+	for await (const chunk of encodeAsyncIterable(streamValues())) {
 		chunks.push(chunk)
 	}
 
@@ -46,7 +46,7 @@ test("decode value stream in chunks of 10 bytes", async (t) => {
 	}
 
 	const decodedValues = []
-	for await (const value of decodeStream(streamChunks())) {
+	for await (const value of decodeAsyncIterable(streamChunks())) {
 		decodedValues.push(value)
 	}
 
@@ -66,7 +66,7 @@ test("compose encodeStream(decodeStream()) | chunkSize = 16", async (t) => {
 	}
 
 	const chunks = []
-	for await (const chunk of encodeStream(decodeStream(streamChunks()))) {
+	for await (const chunk of encodeAsyncIterable(decodeAsyncIterable(streamChunks()))) {
 		chunks.push(chunk)
 	}
 
@@ -79,7 +79,7 @@ test("compose decodeStream(encodeStream()) | chunkSize = 64", async (t) => {
 	}
 
 	const decodedValues = []
-	for await (const value of decodeStream(encodeStream(streamValues(), { chunkSize: 64 }))) {
+	for await (const value of decodeAsyncIterable(encodeAsyncIterable(streamValues(), { chunkSize: 64 }))) {
 		decodedValues.push(value)
 	}
 
