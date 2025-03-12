@@ -22,8 +22,6 @@ export class CBOREncoderStream extends TransformStream<CBORValue, Uint8Array> {
 				for (const chunk of encoder.flush()) {
 					controller.enqueue(chunk)
 				}
-
-				console.log("done encoding")
 			},
 		})
 	}

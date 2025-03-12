@@ -4,15 +4,17 @@ import type { CBORValue } from "./types.js"
 
 import { UnsafeIntegerError, maxSafeInteger, minSafeInteger } from "./utils.js"
 
-class Decoder implements AsyncIterableIterator<CBORValue> {
+export class Decoder implements AsyncIterableIterator<CBORValue> {
 	private offset = 0
 	private byteLength = 0
 	private readonly chunks: Uint8Array[] = []
 	private readonly constantBuffer = new ArrayBuffer(8)
 	private readonly constantView = new DataView(this.constantBuffer)
 	private readonly iter: AsyncIterator<Uint8Array, void, undefined>
-	constructor(source: AsyncIterable<Uint8Array>) {
+	private readonly onFree?: (chunk: Uint8Array) => void
+	constructor(source: AsyncIterable<Uint8Array>, options: { onFree?: (chunk: Uint8Array) => void } = {}) {
 		this.iter = source[Symbol.asyncIterator]()
+		this.onFree = options.onFree
 	}
 
 	[Symbol.asyncIterator] = () => this
@@ -54,6 +56,12 @@ class Decoder implements AsyncIterableIterator<CBORValue> {
 				byteLength += capacity // equivalent to break
 				this.offset += capacity
 				this.byteLength -= capacity
+			}
+		}
+
+		if (this.onFree !== undefined) {
+			for (let i = 0; i < deleteCount; i++) {
+				this.onFree(this.chunks[i])
 			}
 		}
 

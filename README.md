@@ -6,19 +6,23 @@ Encode JavaScript values as canonical CBOR.
 
 microcbor is a minimal JavaScript [CBOR](https://cbor.io/) implementation featuring
 
-- a small footprint,
-- fast performance, and
-- `Iterable` and `AsyncIterable` streaming interfaces
+- small footprint
+- fast performance
+- memory-efficient "chunk recycling" streaming encoder
+- [Web Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API)-compatible [TransformStream](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream) classes
 
-microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise lexicographic order. `NaN` is always serialized as `0xf97e00`. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
+microcbor follows the [deterministic CBOR encoding requirements](https://www.rfc-editor.org/rfc/rfc8949.html#core-det) - all floating-point numbers are serialized in the smallest possible size without losing precision, and object entries are always sorted by key in byte-wise utf-8 lexicographic order. `NaN` is always serialized as `0xf97e00`. **microcbor doesn't support tags, bigints, typed arrays, non-string keys, or indefinite-length collections.**
 
-This library is TypeScript-native, ESM-only, and has just one dependency [joeltg/fp16](https://github.com/joeltg/fp16) for half-precision floats. It works in Node, the browser, and Deno.
+This library is TypeScript-native, ESM-only, and has just one dependency [joeltg/fp16](https://github.com/joeltg/fp16) for half-precision floats.
 
 ## Table of Contents
 
 - [Install](#install)
 - [Usage](#usage)
 - [API](#api)
+  - [CBOR Values](#cbor-values)
+  - [Encoding](#encoding)
+  - [Decoding](#decoding)
 - [Value mapping](#value-mapping)
 - [Testing](#testing)
 - [Benchmarks](#benchmarks)
@@ -29,12 +33,6 @@ This library is TypeScript-native, ESM-only, and has just one dependency [joeltg
 
 ```
 npm i microcbor
-```
-
-Or in Deno:
-
-```typescript
-import { encode, decode } from "https://cdn.skypack.dev/microcbor"
 ```
 
 ## Usage
@@ -57,6 +55,8 @@ console.log(decode(data))
 
 ## API
 
+### CBOR Values
+
 ```ts
 declare type CBORValue = undefined | null | boolean | number | string | Uint8Array | CBORArray | CBORMap
 
@@ -64,25 +64,84 @@ interface CBORArray extends Array<CBORValue> {}
 interface CBORMap {
   [key: string]: CBORValue
 }
+```
 
-// If not provided, chunkSize defaults to 512 bytes.
-// It's only a guideline; `encodeStream` won't break up
-// individual CBOR values like strings or byte arrays
-// that are larger than the provided chunk size.
-declare function encode(value: CBORValue, options?: { chunkSize?: number }): Uint8Array
+### Encoding
 
-declare function encodeStream(
-  source: AsyncIterable<CBORValue>,
-  options?: { chunkSize?: number },
-): AsyncIterable<Uint8Array>
+```ts
+export interface EncodeOptions {
+  /**
+   * Re-use the same underlying ArrayBuffer for all yielded chunks.
+   * If this is enabled, the consumer must copy each chunk content
+   * themselves to a new buffer if they wish to keep it.
+   * This mode is useful for efficiently hashing objects without
+   * ever allocating memory for the entire encoded result.
+   * @default false
+   */
+  chunkRecycling?: boolean
 
-declare function decode(data: Uint8Array): CBORValue
+  /**
+   * Maximum chunk size.
+   * @default 4096
+   */
+  chunkSize?: number
 
-declare function decodeStream(source: AsyncIterable<Uint8Array>): AsyncIterable<CBORValue>
+  /**
+   * Minimum bitsize for floating-point numbers: 16, 32, or 64.
+   * @default 16
+   */
+  minFloatSize?: (typeof FloatSize)[keyof typeof FloatSize]
+}
 
-// You can measure the byte length that a given value will
-// serialize to without actually allocating anything.
+/**
+ * Calculate the byte length that a value will encode into
+ * without actually allocating anything.
+ */
 declare function encodingLength(value: CBORValue): number
+
+/**
+ * Encode a single CBOR value.
+ * options.chunkRecycling has no effect here.
+ */
+export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Array
+
+/** Encode an iterable of CBOR values into an iterable of Uint8Array chunks */
+export function* encodeIterable(
+	source: Iterable<CBORValue>,
+	options: EncodeOptions = {},
+): IterableIterator<Uint8Array>
+
+/** Encode an async iterable of CBOR values into an async iterable of Uint8Array chunks */
+export async function* encodeAsyncIterable(
+	source: AsyncIterable<CBORValue>,
+	options: EncodeOptions = {},
+): AsyncIterableIterator<Uint8Array>
+
+/**
+ * Encode a Web Streams API ReadableStream.
+ * options.chunkRecycling has no effect here.
+ */
+export class CBOREncoderStream extends TransformStream<CBORValue, Uint8Array> {
+	public constructor(options: EncodeOptions = {})
+}
+```
+
+### Decoding
+
+```ts
+/** Decode a single CBOR value. */
+export function decode(data: Uint8Array): CBORValue
+
+/** Decode an iterable of Uint8Array chunks into an iterable of CBOR values */
+export function* decodeIterable(source: Iterable<Uint8Array>): IterableIterator<CBORValue>
+
+/** Decode an async iterable of Uint8Array chunks into an async iterable of CBOR values */
+export async function* decodeAsyncIterable(source: AsyncIterable<Uint8Array>): AsyncIterable<CBORValue>
+
+/** Decode a Web Streams API ReadableStream. */
+export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
+	public constructor()
+}
 ```
 
 ## Unsafe integer handling

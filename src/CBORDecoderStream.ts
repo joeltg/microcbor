@@ -1,4 +1,4 @@
-import { decodeAsyncIterable } from "./decodeAsyncIterable.js"
+import { Decoder } from "./decodeAsyncIterable.js"
 import { CBORValue } from "./types.js"
 
 /** Decode a Web Streams API ReadableStream */
@@ -6,29 +6,34 @@ export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
 	constructor() {
 		let readableController: ReadableStreamDefaultController<Uint8Array>
 
-		// Create a simple ReadableStream to queue our chunks
 		const readable = new ReadableStream<Uint8Array>({
 			start(controller) {
 				readableController = controller
 			},
 		})
 
-		super({
-			async start(controller) {
-				try {
-					console.log("start decoding")
-					for await (const value of decodeAsyncIterable(readable)) {
-						controller.enqueue(value)
-					}
+		const chunks = new WeakMap<Uint8Array, { resolve: () => void; reject: (err: any) => void }>()
 
-					console.log("done decoding")
-				} catch (error) {
-					controller.error(error)
-				}
+		async function pipe(controller: TransformStreamDefaultController<CBORValue>) {
+			const decoder = new Decoder(readable.values(), {
+				onFree: (chunk) => chunks.get(chunk)?.resolve(),
+			})
+
+			for await (const value of decoder) {
+				controller.enqueue(value)
+			}
+		}
+
+		super({
+			start(controller) {
+				pipe(controller).catch((err) => controller.error(err))
 			},
 
 			transform(chunk) {
-				readableController.enqueue(chunk)
+				return new Promise<void>((resolve, reject) => {
+					chunks.set(chunk, { resolve, reject })
+					readableController.enqueue(chunk)
+				})
 			},
 
 			flush() {
