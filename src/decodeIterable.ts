@@ -4,7 +4,7 @@ import type { CBORValue } from "./types.js"
 
 import { UnsafeIntegerError, maxSafeInteger, minSafeInteger } from "./utils.js"
 
-class Decoder implements IterableIterator<CBORValue> {
+class Decoder<T extends CBORValue = CBORValue> implements IterableIterator<T> {
 	private offset = 0
 	private byteLength = 0
 	private readonly chunks: Uint8Array[] = []
@@ -111,7 +111,7 @@ class Decoder implements IterableIterator<CBORValue> {
 		}
 	}
 
-	public next(): { done: true; value: undefined } | { done: false; value: CBORValue } {
+	public next(): { done: true; value: undefined } | { done: false; value: T } {
 		while (this.byteLength === 0) {
 			const { done, value } = this.iter.next()
 			if (done) {
@@ -123,7 +123,7 @@ class Decoder implements IterableIterator<CBORValue> {
 		}
 
 		const value = this.decodeValue()
-		return { done: false, value }
+		return { done: false, value: value as T }
 	}
 
 	private decodeValue(): CBORValue {

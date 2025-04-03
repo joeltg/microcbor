@@ -144,6 +144,6 @@ export class Decoder {
 }
 
 /** Decode a single CBOR value */
-export function decode(data: Uint8Array): CBORValue {
-	return new Decoder(data).decodeValue()
+export function decode<T extends CBORValue = CBORValue>(data: Uint8Array): T {
+	return new Decoder(data).decodeValue() as T
 }

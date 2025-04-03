@@ -2,7 +2,7 @@ import { Decoder } from "./decodeAsyncIterable.js"
 import { CBORValue } from "./types.js"
 
 /** Decode a Web Streams API ReadableStream */
-export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
+export class CBORDecoderStream<T extends CBORValue = CBORValue> extends TransformStream<Uint8Array, T> {
 	constructor() {
 		let readableController: ReadableStreamDefaultController<Uint8Array>
 
@@ -16,8 +16,8 @@ export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
 		// .transform() promise once all data from each chunk has been enqueued.
 		const chunks = new WeakMap<Uint8Array, { resolve: () => void }>()
 
-		async function pipe(controller: TransformStreamDefaultController<CBORValue>) {
-			const decoder = new Decoder(readable.values(), {
+		async function pipe(controller: TransformStreamDefaultController<T>) {
+			const decoder = new Decoder<T>(readable.values(), {
 				onFree: (chunk) => chunks.get(chunk)?.resolve(),
 			})
 
