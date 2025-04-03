@@ -166,14 +166,16 @@ export class CBOREncoderStream extends TransformStream<CBORValue, Uint8Array> {
 
 ```ts
 /** Decode a single CBOR value. */
-export function decode(data: Uint8Array): CBORValue
+export function decode<T extends CBORValue = CBORValue>(data: Uint8Array): T
 ```
 
 #### `decodeIterable`
 
 ```ts
 /** Decode an iterable of Uint8Array chunks into an iterable of CBOR values */
-export function* decodeIterable(source: Iterable<Uint8Array>): IterableIterator<CBORValue>
+export function* decodeIterable<T extends CBORValue = CBORValue>(
+  source: Iterable<Uint8Array>,
+): IterableIterator<T>
 
 ```
 
@@ -181,14 +183,16 @@ export function* decodeIterable(source: Iterable<Uint8Array>): IterableIterator<
 
 ```ts
 /** Decode an async iterable of Uint8Array chunks into an async iterable of CBOR values */
-export async function* decodeAsyncIterable(source: AsyncIterable<Uint8Array>): AsyncIterable<CBORValue>
+export async function* decodeAsyncIterable<T extends CBORValue = CBORValue>(
+  source: AsyncIterable<Uint8Array>,
+): AsyncIterable<CBORValue>
 ```
 
 #### `CBORDecoderStream`
 
 ```ts
 /** Decode a Web Streams API ReadableStream. */
-export class CBORDecoderStream extends TransformStream<Uint8Array, CBORValue> {
+export class CBORDecoderStream<T extends CBORValue = CBORValue> extends TransformStream<Uint8Array, T> {
   public constructor()
 }
 ```
