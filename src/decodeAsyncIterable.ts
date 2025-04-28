@@ -3,8 +3,16 @@ import { getFloat16 } from "fp16"
 import type { CBORValue } from "./types.js"
 
 import { UnsafeIntegerError, maxSafeInteger, minSafeInteger } from "./utils.js"
+import { DecodeOptions, FloatSize } from "./options.js"
+
+export interface AsyncDecodeOptions extends DecodeOptions {
+	onFree?: (chunk: Uint8Array) => void
+}
 
 export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIterator<T> {
+	public readonly allowUndefined: boolean
+	public readonly minFloatSize: (typeof FloatSize)[keyof typeof FloatSize]
+
 	private offset = 0
 	private byteLength = 0
 	private readonly chunks: Uint8Array[] = []
@@ -12,9 +20,12 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 	private readonly constantView = new DataView(this.constantBuffer)
 	private readonly iter: AsyncIterator<Uint8Array, void, undefined>
 	private readonly onFree?: (chunk: Uint8Array) => void
-	constructor(source: AsyncIterable<Uint8Array>, options: { onFree?: (chunk: Uint8Array) => void } = {}) {
-		this.iter = source[Symbol.asyncIterator]()
+
+	public constructor(source: AsyncIterable<Uint8Array>, options: AsyncDecodeOptions = {}) {
 		this.onFree = options.onFree
+		this.allowUndefined = options.allowUndefined ?? true
+		this.minFloatSize = options.minFloatSize ?? 16
+		this.iter = source[Symbol.asyncIterator]()
 	}
 
 	[Symbol.asyncIterator] = () => this
@@ -191,13 +202,25 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 				case 22:
 					return null
 				case 23:
-					return undefined
+					if (this.allowUndefined) {
+						return undefined
+					} else {
+						throw new TypeError("`undefined` not allowed")
+					}
 				case 24:
 					throw new Error("microcbor does not support decoding unassigned simple values")
 				case 25:
-					return await this.float16()
+					if (this.minFloatSize <= 16) {
+						return this.float16()
+					} else {
+						throw new Error("cannot decode float16 type - below provided minFloatSize")
+					}
 				case 26:
-					return await this.float32()
+					if (this.minFloatSize <= 32) {
+						return this.float32()
+					} else {
+						throw new Error("cannot decode float32 type - below provided minFloatSize")
+					}
 				case 27:
 					return await this.float64()
 				case 31:
@@ -212,6 +235,9 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 }
 
 /** Decode an async iterable of Uint8Array chunks into an async iterable of CBOR values */
-export async function* decodeAsyncIterable(source: AsyncIterable<Uint8Array>): AsyncIterableIterator<CBORValue> {
-	yield* new Decoder(source)
+export async function* decodeAsyncIterable(
+	source: AsyncIterable<Uint8Array>,
+	options: AsyncDecodeOptions = {},
+): AsyncIterableIterator<CBORValue> {
+	yield* new Decoder(source, options)
 }

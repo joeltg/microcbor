@@ -1,42 +1,14 @@
 import { Precision, getFloat16Precision, getFloat32Precision, setFloat16 } from "fp16"
 
 import type { CBORValue } from "./types.js"
+import { EncodeOptions, FloatSize } from "./options.js"
 import { assert } from "./utils.js"
-
-export const FloatSize = {
-	f16: 16,
-	f32: 32,
-	f64: 64,
-}
-
-export interface EncodeOptions {
-	/**
-	 * Re-use the same underlying ArrayBuffer for all yielded chunks.
-	 * If this is enabled, the consumer must copy each chunk content
-	 * themselves to a new buffer if they wish to keep it.
-	 * This mode is useful for efficiently hashing objects without
-	 * ever allocating memory for the entire encoded result.
-	 * @default false
-	 */
-	chunkRecycling?: boolean
-
-	/**
-	 * Maximum chunk size
-	 * @default 4096
-	 */
-	chunkSize?: number
-
-	/**
-	 * Minimum bitsize for floating-point numbers: 16, 32, or 64
-	 * @default 16
-	 */
-	minFloatSize?: (typeof FloatSize)[keyof typeof FloatSize]
-}
 
 export class Encoder {
 	public static defaultChunkSize = 4096
 
 	#closed: boolean
+	public readonly allowUndefined: boolean
 	public readonly chunkRecycling: boolean
 	public readonly chunkSize: number
 	public readonly minFloatSize: (typeof FloatSize)[keyof typeof FloatSize]
@@ -48,6 +20,7 @@ export class Encoder {
 	private offset: number
 
 	constructor(options: EncodeOptions = {}) {
+		this.allowUndefined = options.allowUndefined ?? true
 		this.minFloatSize = options.minFloatSize ?? 16
 		this.chunkRecycling = options.chunkRecycling ?? false
 		this.chunkSize = options.chunkSize ?? Encoder.defaultChunkSize
@@ -228,7 +201,11 @@ export class Encoder {
 		} else if (value === null) {
 			yield* this.uint8(0xf6)
 		} else if (value === undefined) {
-			yield* this.uint8(0xf7)
+			if (this.allowUndefined) {
+				yield* this.uint8(0xf7)
+			} else {
+				throw new TypeError("`undefined` is not allowed")
+			}
 		} else if (typeof value === "number") {
 			yield* this.encodeNumber(value)
 		} else if (typeof value === "string") {

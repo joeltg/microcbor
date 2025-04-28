@@ -1,5 +1,6 @@
+import { Encoder } from "./Encoder.js"
 import { CBORValue } from "./types.js"
-import { Encoder, EncodeOptions } from "./Encoder.js"
+import { EncodeOptions } from "./options.js"
 
 /**
  * Encode a Web Streams API ReadableStream.

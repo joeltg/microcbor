@@ -68,7 +68,15 @@ console.log(decode(data))
 ### CBOR Values
 
 ```ts
-declare type CBORValue = undefined | null | boolean | number | string | Uint8Array | CBORArray | CBORMap
+declare type CBORValue =
+  | undefined
+  | null
+  | boolean
+  | number
+  | string
+  | Uint8Array
+  | CBORArray
+  | CBORMap
 
 interface CBORArray extends Array<CBORValue> {}
 interface CBORMap {
@@ -82,6 +90,12 @@ interface CBORMap {
 
 ```ts
 export interface EncodeOptions {
+  /**
+   * Allow `undefined`
+   * @default true
+   */
+  allowUndefined?: boolean
+
   /**
    * Re-use the same underlying ArrayBuffer for all yielded chunks.
    * If this is enabled, the consumer must copy each chunk content
@@ -113,7 +127,10 @@ export interface EncodeOptions {
  * Calculate the byte length that a value will encode into
  * without actually allocating anything.
  */
-declare function encodingLength(value: CBORValue): number
+declare function encodingLength(
+  value: CBORValue,
+  options?: EncodeOptions,
+): number
 ```
 
 #### `encode`
@@ -123,7 +140,7 @@ declare function encodingLength(value: CBORValue): number
  * Encode a single CBOR value.
  * options.chunkRecycling has no effect here.
  */
-export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Array
+export function encode(value: CBORValue, options?: EncodeOptions): Uint8Array
 ```
 
 #### `encodeIterable`
@@ -132,7 +149,7 @@ export function encode(value: CBORValue, options: EncodeOptions = {}): Uint8Arra
 /** Encode an iterable of CBOR values into an iterable of Uint8Array chunks */
 export function* encodeIterable(
   source: Iterable<CBORValue>,
-  options: EncodeOptions = {},
+  options?: EncodeOptions,
 ): IterableIterator<Uint8Array>
 
 ```
@@ -143,7 +160,7 @@ export function* encodeIterable(
 /** Encode an async iterable of CBOR values into an async iterable of Uint8Array chunks */
 export async function* encodeAsyncIterable(
   source: AsyncIterable<CBORValue>,
-  options: EncodeOptions = {},
+  options?: EncodeOptions,
 ): AsyncIterableIterator<Uint8Array>
 
 ```
@@ -156,17 +173,38 @@ export async function* encodeAsyncIterable(
  * options.chunkRecycling has no effect here.
  */
 export class CBOREncoderStream extends TransformStream<CBORValue, Uint8Array> {
-  public constructor(options: EncodeOptions = {})
+  public constructor(options?: EncodeOptions)
 }
 ```
 
 ### Decoding
 
+#### `DecodeOptions`
+
+```ts
+export interface DecodeOptions {
+  /**
+   * Allow `undefined`
+   * @default true
+   */
+  allowUndefined?: boolean
+
+  /**
+   * Minimum bitsize for floating-point numbers: 16, 32, or 64
+   * @default 16
+   */
+  minFloatSize?: (typeof FloatSize)[keyof typeof FloatSize]
+}
+```
+
 #### `decode`
 
 ```ts
 /** Decode a single CBOR value. */
-export function decode<T extends CBORValue = CBORValue>(data: Uint8Array): T
+export function decode<T extends CBORValue = CBORValue>(
+  data: Uint8Array,
+  options?: DecodeOptions,
+): T
 ```
 
 #### `decodeIterable`
@@ -175,8 +213,8 @@ export function decode<T extends CBORValue = CBORValue>(data: Uint8Array): T
 /** Decode an iterable of Uint8Array chunks into an iterable of CBOR values */
 export function* decodeIterable<T extends CBORValue = CBORValue>(
   source: Iterable<Uint8Array>,
+  options?: DecodeOptions,
 ): IterableIterator<T>
-
 ```
 
 #### `decodeAsyncIterable`
@@ -185,6 +223,7 @@ export function* decodeIterable<T extends CBORValue = CBORValue>(
 /** Decode an async iterable of Uint8Array chunks into an async iterable of CBOR values */
 export async function* decodeAsyncIterable<T extends CBORValue = CBORValue>(
   source: AsyncIterable<Uint8Array>,
+  options?: DecodeOptions,
 ): AsyncIterable<CBORValue>
 ```
 
@@ -192,7 +231,9 @@ export async function* decodeAsyncIterable<T extends CBORValue = CBORValue>(
 
 ```ts
 /** Decode a Web Streams API ReadableStream. */
-export class CBORDecoderStream<T extends CBORValue = CBORValue> extends TransformStream<Uint8Array, T> {
+export class CBORDecoderStream<
+  T extends CBORValue = CBORValue,
+> extends TransformStream<Uint8Array, T> {
   public constructor()
 }
 ```

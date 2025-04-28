@@ -1,6 +1,7 @@
 import type { CBORValue } from "./types.js"
 
-import { EncodeOptions, Encoder } from "./Encoder.js"
+import { Encoder } from "./Encoder.js"
+import { EncodeOptions } from "./options.js"
 
 /** Encode an iterable of CBOR values into an iterable of Uint8Array chunks */
 export function* encodeIterable(

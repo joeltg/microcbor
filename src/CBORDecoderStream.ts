@@ -1,9 +1,10 @@
 import { Decoder } from "./decodeAsyncIterable.js"
+import { DecodeOptions } from "./options.js"
 import { CBORValue } from "./types.js"
 
 /** Decode a Web Streams API ReadableStream */
 export class CBORDecoderStream<T extends CBORValue = CBORValue> extends TransformStream<Uint8Array, T> {
-	constructor() {
+	constructor(options: DecodeOptions = {}) {
 		let readableController: ReadableStreamDefaultController<Uint8Array>
 
 		const readable = new ReadableStream<Uint8Array>({
@@ -18,6 +19,7 @@ export class CBORDecoderStream<T extends CBORValue = CBORValue> extends Transfor
 
 		async function pipe(controller: TransformStreamDefaultController<T>) {
 			const decoder = new Decoder<T>(readable.values(), {
+				...options,
 				onFree: (chunk) => chunks.get(chunk)?.resolve(),
 			})
 
