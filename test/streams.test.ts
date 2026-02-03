@@ -75,14 +75,13 @@ test("CBORDecoderStream handles multi-chunk values without deadlock", async (t) 
 
 	// Add a timeout to detect deadlock
 	const abortController = new AbortController()
-	const timeoutPromise = setTimeout(5000, undefined, { signal: abortController.signal }).then(() => {
-		throw new Error("Deadlock detected: operation timed out")
-	})
 
 	// Race the pipeline against the timeout
 	await Promise.race([
 		reader.pipeThrough(encoder).pipeThrough(chunkSplitter).pipeThrough(decoder).pipeTo(writer),
-		timeoutPromise,
+		setTimeout(5000, undefined, { signal: abortController.signal }).then(() => {
+			throw new Error("Deadlock detected: operation timed out")
+		}),
 	]).finally(() => abortController.abort())
 
 	t.is(output.length, 1)
