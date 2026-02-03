@@ -20,6 +20,8 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 	private readonly constantView = new DataView(this.constantBuffer)
 	private readonly iter: AsyncIterator<Uint8Array, void, undefined>
 	private readonly onFree?: (chunk: Uint8Array) => void
+	private readonly touchedChunks = new WeakSet<Uint8Array>()
+	private readonly freedChunks = new WeakSet<Uint8Array>()
 
 	public constructor(source: AsyncIterable<Uint8Array>, options: AsyncDecodeOptions = {}) {
 		this.onFree = options.onFree
@@ -31,6 +33,17 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 	[Symbol.asyncIterator] = () => this
 
 	private async allocate(size: number) {
+		// If we need more data, first call onFree for all touched chunks
+		// This allows the transform stream to provide more chunks
+		if (this.byteLength < size && this.onFree !== undefined) {
+			for (const chunk of this.chunks) {
+				if (this.touchedChunks.has(chunk) && !this.freedChunks.has(chunk)) {
+					this.freedChunks.add(chunk)
+					this.onFree(chunk)
+				}
+			}
+		}
+
 		while (this.byteLength < size) {
 			const { done, value } = await this.iter.next()
 			if (done) {
@@ -38,6 +51,13 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 			} else {
 				this.chunks.push(value)
 				this.byteLength += value.byteLength
+
+				// If we still need more data after adding this chunk,
+				// immediately call onFree to allow the next chunk to flow
+				if (this.byteLength < size && this.onFree !== undefined && !this.freedChunks.has(value)) {
+					this.freedChunks.add(value)
+					this.onFree(value)
+				}
 			}
 		}
 	}
@@ -51,6 +71,12 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 		let deleteCount = 0
 		for (let i = 0; byteLength < target.byteLength; i++) {
 			const chunk = this.chunks[i]
+
+			// Track which chunks we touched
+			if (!this.touchedChunks.has(chunk)) {
+				this.touchedChunks.add(chunk)
+			}
+
 			const capacity = target.byteLength - byteLength
 			const length = chunk.byteLength - this.offset
 			if (length <= capacity) {
@@ -70,9 +96,14 @@ export class Decoder<T extends CBORValue = CBORValue> implements AsyncIterableIt
 			}
 		}
 
+		// Call onFree for chunks that are being removed (fully consumed)
 		if (this.onFree !== undefined) {
 			for (let i = 0; i < deleteCount; i++) {
-				this.onFree(this.chunks[i])
+				const chunk = this.chunks[i]
+				if (!this.freedChunks.has(chunk)) {
+					this.freedChunks.add(chunk)
+					this.onFree(chunk)
+				}
 			}
 		}
 
